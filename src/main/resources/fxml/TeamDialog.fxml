@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sdms.controller.TeamDialogController"
+      fx:id="root" spacing="16" styleClass="team-dialog-root"
+      prefWidth="1320" prefHeight="760">
+
+    <padding><Insets top="20" right="24" bottom="18" left="24"/></padding>
+
+    <VBox alignment="CENTER" spacing="8">
+        <HBox alignment="CENTER" spacing="8">
+            <ImageView fitWidth="46" fitHeight="46" preserveRatio="true">
+                <image><Image url="@../images/SDO-Seal.png"/></image>
+            </ImageView>
+            <Label text="AlfaDevs" styleClass="team-brand"/>
+        </HBox>
+        <Label text="Meet the Alfa Dev Team" styleClass="team-title"/>
+        <Label text="The development team responsible for bringing this project to life." styleClass="team-subtitle"/>
+    </VBox>
+
+    <HBox alignment="CENTER" spacing="18" VBox.vgrow="ALWAYS">
+        <VBox styleClass="team-card" alignment="TOP_CENTER" spacing="8">
+            <padding><Insets top="16" right="14" bottom="14" left="14"/></padding>
+            <ImageView fitWidth="118" fitHeight="118" preserveRatio="true" styleClass="team-photo">
+                <image><Image url="@../images/reniel_formal_picture.jpg"/></image>
+            </ImageView>
+            <Label text="Reniel John H. Placer" styleClass="team-name" wrapText="true" textAlignment="CENTER"/>
+            <Label text="SDMS Developer" styleClass="team-role"/>
+            <Label text="Athlete Track Application" styleClass="team-note" wrapText="true" textAlignment="CENTER"/>
+        </VBox>
+
+        <VBox styleClass="team-card" alignment="TOP_CENTER" spacing="8">
+            <padding><Insets top="16" right="14" bottom="14" left="14"/></padding>
+            <ImageView fitWidth="118" fitHeight="118" preserveRatio="true" styleClass="team-photo">
+                <image><Image url="@../images/liph.jpg"/></image>
+            </ImageView>
+            <Label text="Phil David I. Banquillo" styleClass="team-name" wrapText="true" textAlignment="CENTER"/>
+            <Label text="DepTrack Developer" styleClass="team-role"/>
+            <Hyperlink text="Open DepTrack" onAction="#onOpenDepTrack" styleClass="team-link"/>
+        </VBox>
+
+        <VBox styleClass="team-card" alignment="TOP_CENTER" spacing="8">
+            <padding><Insets top="16" right="14" bottom="14" left="14"/></padding>
+            <ImageView fitWidth="118" fitHeight="118" preserveRatio="true" styleClass="team-photo">
+                <image><Image url="@../images/leibu.jpg"/></image>
+            </ImageView>
+            <Label text="Matthew Peralta" styleClass="team-name" wrapText="true" textAlignment="CENTER"/>
+            <Label text="DepTrack Developer" styleClass="team-role"/>
+            <Hyperlink text="Open DepTrack" onAction="#onOpenDepTrack" styleClass="team-link"/>
+        </VBox>
+
+        <VBox styleClass="team-card" alignment="TOP_CENTER" spacing="8">
+            <padding><Insets top="16" right="14" bottom="14" left="14"/></padding>
+            <ImageView fitWidth="118" fitHeight="118" preserveRatio="true" styleClass="team-photo">
+                <image><Image url="@../images/tim-formal-attire.jpg"/></image>
+            </ImageView>
+            <Label text="Timothy John G. Garcia" styleClass="team-name" wrapText="true" textAlignment="CENTER"/>
+            <Label text="Developer" styleClass="team-role"/>
+            <Label text="SDMS Team" styleClass="team-note"/>
+        </VBox>
+
+        <VBox styleClass="team-card" alignment="TOP_CENTER" spacing="8">
+            <padding><Insets top="16" right="14" bottom="14" left="14"/></padding>
+            <ImageView fitWidth="118" fitHeight="118" preserveRatio="true" styleClass="team-photo">
+                <image><Image url="@../images/nino-perez-resume-picture.jpg"/></image>
+            </ImageView>
+            <Label text="Niño Marine N. Perez" styleClass="team-name" wrapText="true" textAlignment="CENTER"/>
+            <Label text="Developer" styleClass="team-role"/>
+            <Label text="SDMS Team" styleClass="team-note"/>
+        </VBox>
+    </HBox>
+
+    <HBox alignment="CENTER_RIGHT">
+        <Button text="Close" onAction="#onClose" styleClass="btn-secondary"/>
+    </HBox>
+</VBox>

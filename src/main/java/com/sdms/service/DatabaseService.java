@@ -1,0 +1,914 @@
+package com.sdms.service;
+
+import com.sdms.model.*;
+import com.sdms.util.AppPaths;
+
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.Year;
+import java.util.ArrayList;
+import java.util.List;
+
+public class DatabaseService {
+
+    private static DatabaseService instance;
+    private Connection connection;
+    private static final String DB_URL = "jdbc:sqlite:" + AppPaths.dbPath().toString();
+
+    private DatabaseService() {}
+
+    @FunctionalInterface
+    private interface SqlWork<T> { T run() throws SQLException; }
+
+    private <T> T inTransaction(SqlWork<T> work) throws SQLException {
+        if (!connection.getAutoCommit()) return work.run();
+        connection.setAutoCommit(false);
+        try {
+            T result = work.run();
+            connection.commit();
+            return result;
+        } catch (SQLException | RuntimeException e) {
+            try { connection.rollback(); } catch (SQLException rollbackError) { e.addSuppressed(rollbackError); }
+            throw e;
+        } finally {
+            connection.setAutoCommit(true);
+        }
+    }
+
+    public static DatabaseService getInstance() {
+        if (instance == null) instance = new DatabaseService();
+        return instance;
+    }
+
+    public void initializeDatabase() {
+        try {
+            connection = DriverManager.getConnection(DB_URL);
+            connection.createStatement().execute("PRAGMA foreign_keys = ON");
+            createTables();
+            cleanupOrphanedChildren();
+            ensureDefaultAdmin();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to open database: " + e.getMessage(), e);
+        }
+    }
+
+    public void closeConnection() {
+        try { if (connection != null) connection.close(); } catch (SQLException ignored) {}
+    }
+
+    public int countTable(String table) throws SQLException {
+        ResultSet rs = connection.createStatement().executeQuery("SELECT COUNT(*) FROM " + table);
+        return rs.next() ? rs.getInt(1) : 0;
+    }
+
+    private void createTables() throws SQLException {
+        Statement st = connection.createStatement();
+        st.execute("CREATE TABLE IF NOT EXISTS athletes (id INTEGER PRIMARY KEY AUTOINCREMENT, athlete_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, learner_ref TEXT, contact_no TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, school TEXT, school_address TEXT, present_address TEXT, photo_path TEXT, qr_code_path TEXT, mother_name TEXT, father_name TEXT, guardian_address TEXT, cert_meet TEXT, cert_coach_name TEXT, cert_dso_name TEXT, cert_rso_name TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS athlete_palaro_previous (id INTEGER PRIMARY KEY AUTOINCREMENT, athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE, year TEXT, sports_event TEXT, venue TEXT, remarks TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS athlete_lower_meets (id INTEGER PRIMARY KEY AUTOINCREMENT, athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE, inclusive_dates TEXT, sports_event TEXT, athletic_meet TEXT, remarks TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS officials (id INTEGER PRIMARY KEY AUTOINCREMENT, official_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, mobile_phone TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, current_position TEXT, years_in_service INTEGER, school TEXT, employee_number TEXT, school_address TEXT, present_address TEXT, emergency_contact_name TEXT, emergency_contact_no TEXT, photo_path TEXT, qr_code_path TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS coaches (id INTEGER PRIMARY KEY AUTOINCREMENT, coach_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, mobile_phone TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, current_position TEXT, years_in_service INTEGER, school TEXT, employee_number TEXT, school_address TEXT, present_address TEXT, emergency_contact_name TEXT, emergency_contact_no TEXT, photo_path TEXT, qr_code_path TEXT)");
+        for (String p : List.of("official", "coach")) {
+            String parentTable = p.equals("official") ? "officials" : "coaches";
+            String foreignKey = " REFERENCES " + parentTable + "(id) ON DELETE CASCADE";
+            st.execute("CREATE TABLE IF NOT EXISTS " + p + "_education (id INTEGER PRIMARY KEY AUTOINCREMENT, parent_id INTEGER" + foreignKey + ", level TEXT, course TEXT, school TEXT, year_graduated TEXT, credits_earned TEXT, awards_received TEXT)");
+            st.execute("CREATE TABLE IF NOT EXISTS " + p + "_sports_training (id INTEGER PRIMARY KEY AUTOINCREMENT, parent_id INTEGER" + foreignKey + ", title TEXT, date_of_training TEXT, num_hours INTEGER, conducted_by TEXT)");
+            st.execute("CREATE TABLE IF NOT EXISTS " + p + "_track_record (id INTEGER PRIMARY KEY AUTOINCREMENT, parent_id INTEGER" + foreignKey + ", meet_attended TEXT, inclusive_dates TEXT, event TEXT, awards_received TEXT)");
+        }
+        st.execute("CREATE TABLE IF NOT EXISTS equipment (id INTEGER PRIMARY KEY AUTOINCREMENT, equipment_id TEXT UNIQUE, borrower_name TEXT, designation TEXT, school TEXT, event TEXT, mobile_no TEXT, date TEXT, issued_by TEXT, issued_to TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS equipment_items (id INTEGER PRIMARY KEY AUTOINCREMENT, equipment_id INTEGER REFERENCES equipment(id) ON DELETE CASCADE, qty INTEGER, unit TEXT, make_and_description TEXT, date_borrowed TEXT, date_returned TEXT, remarks TEXT)");
+        st.close();
+    }
+
+    private void cleanupOrphanedChildren() throws SQLException {
+        try (Statement st = connection.createStatement()) {
+            for (String type : List.of("official", "coach")) {
+                String parentTable = type.equals("official") ? "officials" : "coaches";
+                for (String suffix : List.of("education", "sports_training", "track_record")) {
+                    st.executeUpdate("DELETE FROM " + type + "_" + suffix
+                        + " WHERE parent_id IS NULL OR parent_id NOT IN (SELECT id FROM " + parentTable + ")");
+                }
+            }
+        }
+    }
+
+    private String generateId(String prefix, String table, String col) throws SQLException {
+        int year = Year.now().getValue();
+        int maxSequence = 0;
+        String marker = prefix + "-" + year + "-";
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT " + col + " FROM " + table + " WHERE " + col + " LIKE ?")) {
+            ps.setString(1, marker + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String value = rs.getString(1);
+                    if (value == null || !value.startsWith(marker)) continue;
+                    try {
+                        maxSequence = Math.max(maxSequence,
+                            Integer.parseInt(value.substring(marker.length())));
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+        return "%s-%d-%04d".formatted(prefix, year, maxSequence + 1);
+    }
+
+    // ── Athlete ───────────────────────────────────────────────────────────────
+
+    public List<Athlete> getAllAthletes() throws SQLException {
+        List<Athlete> list = new ArrayList<>();
+        ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM athletes ORDER BY last_name, first_name");
+        while (rs.next()) list.add(mapAthlete(rs));
+        return list;
+    }
+
+    public List<Athlete> searchAthletes(String q) throws SQLException {
+        List<Athlete> list = new ArrayList<>();
+        String like = "%" + q.toLowerCase() + "%";
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM athletes WHERE lower(last_name) LIKE ? OR lower(first_name) LIKE ? OR lower(school) LIKE ? OR athlete_id LIKE ? ORDER BY last_name, first_name");
+        ps.setString(1,like); ps.setString(2,like); ps.setString(3,like); ps.setString(4,like);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) list.add(mapAthlete(rs));
+        return list;
+    }
+
+    public Athlete findAthleteByAthleteId(String athleteId) throws SQLException {
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM athletes WHERE athlete_id=?");
+        ps.setString(1, athleteId);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            Athlete athlete = mapAthlete(rs);
+            athlete.setPreviousPalaroRecords(getAthletePalaroRecords(athlete.getId()));
+            athlete.setLowerMeetRecords(getAthleteLowerMeets(athlete.getId()));
+            return athlete;
+        }
+        return null;
+    }
+
+    public int saveAthlete(Athlete a) throws SQLException {
+        if (a.getAthleteId() == null || a.getAthleteId().isBlank())
+            a.setAthleteId(generateId("ATH", "athletes", "athlete_id"));
+        if (a.getId() == 0) {
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO athletes (athlete_id,last_name,first_name,middle_initial,sex,learner_ref,contact_no,date_of_birth,age,place_of_birth,school,school_address,present_address,photo_path,qr_code_path,mother_name,father_name,guardian_address,cert_meet,cert_coach_name,cert_dso_name,cert_rso_name) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+            bindAthlete(ps, a); ps.executeUpdate();
+            ResultSet k = ps.getGeneratedKeys(); if (k.next()) a.setId(k.getInt(1));
+        } else {
+            PreparedStatement ps = connection.prepareStatement("UPDATE athletes SET last_name=?,first_name=?,middle_initial=?,sex=?,learner_ref=?,contact_no=?,date_of_birth=?,age=?,place_of_birth=?,school=?,school_address=?,present_address=?,photo_path=?,qr_code_path=?,mother_name=?,father_name=?,guardian_address=?,cert_meet=?,cert_coach_name=?,cert_dso_name=?,cert_rso_name=? WHERE id=?");
+            bindAthleteUpdate(ps, a); ps.executeUpdate();
+        }
+        return a.getId();
+    }
+
+    public void deleteAthlete(int id) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement("DELETE FROM athletes WHERE id=?")) {
+            ps.setInt(1,id);
+            ps.executeUpdate();
+        }
+    }
+
+    public void saveAthletePalaroRecords(int athleteId, java.util.List<Athlete.PalaroPrevious> records) throws SQLException {
+        try (PreparedStatement del = connection.prepareStatement("DELETE FROM athlete_palaro_previous WHERE athlete_id=?")) {
+            del.setInt(1, athleteId);
+            del.executeUpdate();
+        }
+        for (Athlete.PalaroPrevious r : records) {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO athlete_palaro_previous (athlete_id, year, sports_event, venue, remarks) VALUES (?,?,?,?,?)")) {
+                ps.setInt(1, athleteId); ps.setString(2, r.year); ps.setString(3, r.sportsEvent);
+                ps.setString(4, r.venue); ps.setString(5, r.remarks); ps.executeUpdate();
+            }
+        }
+    }
+
+    public void saveAthleteLowerMeets(int athleteId, java.util.List<Athlete.LowerMeet> meets) throws SQLException {
+        try (PreparedStatement del = connection.prepareStatement("DELETE FROM athlete_lower_meets WHERE athlete_id=?")) {
+            del.setInt(1, athleteId);
+            del.executeUpdate();
+        }
+        for (Athlete.LowerMeet m : meets) {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO athlete_lower_meets (athlete_id, inclusive_dates, sports_event, athletic_meet, remarks) VALUES (?,?,?,?,?)")) {
+                ps.setInt(1, athleteId); ps.setString(2, m.inclusiveDates); ps.setString(3, m.sportsEvent);
+                ps.setString(4, m.athleticMeet); ps.setString(5, m.remarks); ps.executeUpdate();
+            }
+        }
+    }
+
+    public int saveAthleteWithRecords(Athlete athlete,
+            List<Athlete.PalaroPrevious> records, List<Athlete.LowerMeet> meets) throws SQLException {
+        return inTransaction(() -> {
+            int id = saveAthlete(athlete);
+            saveAthletePalaroRecords(id, records);
+            saveAthleteLowerMeets(id, meets);
+            return id;
+        });
+    }
+
+    public java.util.List<Athlete.PalaroPrevious> getAthletePalaroRecords(int athleteId) throws SQLException {
+        java.util.List<Athlete.PalaroPrevious> list = new ArrayList<>();
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM athlete_palaro_previous WHERE athlete_id=?");
+        ps.setInt(1, athleteId); ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            Athlete.PalaroPrevious r = new Athlete.PalaroPrevious();
+            r.id = rs.getInt("id"); r.athleteId = athleteId;
+            r.year = rs.getString("year"); r.sportsEvent = rs.getString("sports_event");
+            r.venue = rs.getString("venue"); r.remarks = rs.getString("remarks");
+            list.add(r);
+        }
+        return list;
+    }
+
+    public java.util.List<Athlete.LowerMeet> getAthleteLowerMeets(int athleteId) throws SQLException {
+        java.util.List<Athlete.LowerMeet> list = new ArrayList<>();
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM athlete_lower_meets WHERE athlete_id=?");
+        ps.setInt(1, athleteId); ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            Athlete.LowerMeet m = new Athlete.LowerMeet();
+            m.id = rs.getInt("id"); m.athleteId = athleteId;
+            m.inclusiveDates = rs.getString("inclusive_dates"); m.sportsEvent = rs.getString("sports_event");
+            m.athleticMeet = rs.getString("athletic_meet"); m.remarks = rs.getString("remarks");
+            list.add(m);
+        }
+        return list;
+    }
+
+
+    private Athlete mapAthlete(ResultSet rs) throws SQLException {
+        Athlete a = new Athlete();
+        a.setId(rs.getInt("id")); a.setAthleteId(rs.getString("athlete_id"));
+        a.setLastName(rs.getString("last_name")); a.setFirstName(rs.getString("first_name"));
+        a.setMiddleInitial(rs.getString("middle_initial")); a.setSex(rs.getString("sex"));
+        a.setLearnerRefNumber(rs.getString("learner_ref")); a.setContactNo(rs.getString("contact_no"));
+        String dob = rs.getString("date_of_birth"); if (dob!=null) a.setDateOfBirth(LocalDate.parse(dob));
+        a.setAge(rs.getInt("age")); a.setPlaceOfBirth(rs.getString("place_of_birth"));
+        a.setSchool(rs.getString("school")); a.setSchoolAddress(rs.getString("school_address"));
+        a.setPresentAddress(rs.getString("present_address")); a.setPhotoPath(rs.getString("photo_path"));
+        a.setQrCodePath(rs.getString("qr_code_path")); a.setMotherName(rs.getString("mother_name"));
+        a.setFatherName(rs.getString("father_name")); a.setGuardianAddress(rs.getString("guardian_address"));
+        a.setCertMeet(rs.getString("cert_meet")); a.setCertCoachName(rs.getString("cert_coach_name"));
+        a.setCertDsoName(rs.getString("cert_dso_name")); a.setCertRsoName(rs.getString("cert_rso_name"));
+        return a;
+    }
+
+    private void bindAthlete(PreparedStatement ps, Athlete a) throws SQLException {
+        ps.setString(1,a.getAthleteId()); ps.setString(2,a.getLastName()); ps.setString(3,a.getFirstName());
+        ps.setString(4,a.getMiddleInitial()); ps.setString(5,a.getSex()); ps.setString(6,a.getLearnerRefNumber());
+        ps.setString(7,a.getContactNo()); ps.setString(8,a.getDateOfBirth()!=null?a.getDateOfBirth().toString():null);
+        ps.setInt(9,a.getAge()); ps.setString(10,a.getPlaceOfBirth()); ps.setString(11,a.getSchool());
+        ps.setString(12,a.getSchoolAddress()); ps.setString(13,a.getPresentAddress()); ps.setString(14,a.getPhotoPath());
+        ps.setString(15,a.getQrCodePath()); ps.setString(16,a.getMotherName()); ps.setString(17,a.getFatherName());
+        ps.setString(18,a.getGuardianAddress()); ps.setString(19,a.getCertMeet()); ps.setString(20,a.getCertCoachName());
+        ps.setString(21,a.getCertDsoName()); ps.setString(22,a.getCertRsoName());
+    }
+
+    private void bindAthleteUpdate(PreparedStatement ps, Athlete a) throws SQLException {
+        ps.setString(1,a.getLastName()); ps.setString(2,a.getFirstName()); ps.setString(3,a.getMiddleInitial());
+        ps.setString(4,a.getSex()); ps.setString(5,a.getLearnerRefNumber()); ps.setString(6,a.getContactNo());
+        ps.setString(7,a.getDateOfBirth()!=null?a.getDateOfBirth().toString():null); ps.setInt(8,a.getAge());
+        ps.setString(9,a.getPlaceOfBirth()); ps.setString(10,a.getSchool()); ps.setString(11,a.getSchoolAddress());
+        ps.setString(12,a.getPresentAddress()); ps.setString(13,a.getPhotoPath()); ps.setString(14,a.getQrCodePath());
+        ps.setString(15,a.getMotherName()); ps.setString(16,a.getFatherName()); ps.setString(17,a.getGuardianAddress());
+        ps.setString(18,a.getCertMeet()); ps.setString(19,a.getCertCoachName()); ps.setString(20,a.getCertDsoName());
+        ps.setString(21,a.getCertRsoName()); ps.setInt(22,a.getId());
+    }
+
+    // ── Official ──────────────────────────────────────────────────────────────
+
+    public List<Official> getAllOfficials() throws SQLException {
+        List<Official> list = new ArrayList<>();
+        ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM officials ORDER BY last_name, first_name");
+        while (rs.next()) { Official o = mapOfficial(rs); loadOfficialChildren(o); list.add(o); }
+        return list;
+    }
+
+    public List<Official> searchOfficials(String q) throws SQLException {
+        List<Official> list = new ArrayList<>();
+        String like = "%" + q.toLowerCase() + "%";
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM officials WHERE lower(last_name) LIKE ? OR lower(first_name) LIKE ? OR lower(school) LIKE ? OR official_id LIKE ? ORDER BY last_name");
+        ps.setString(1,like); ps.setString(2,like); ps.setString(3,like); ps.setString(4,like);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) { Official o = mapOfficial(rs); loadOfficialChildren(o); list.add(o); }
+        return list;
+    }
+
+    public Official findOfficialByOfficialId(String officialId) throws SQLException {
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM officials WHERE official_id=?");
+        ps.setString(1, officialId);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            Official o = mapOfficial(rs);
+            loadOfficialChildren(o);
+            return o;
+        }
+        return null;
+    }
+
+    public int saveOfficial(Official o) throws SQLException {
+        return inTransaction(() -> saveOfficialInternal(o));
+    }
+
+    private int saveOfficialInternal(Official o) throws SQLException {
+        if (o.getOfficialId() == null || o.getOfficialId().isBlank())
+            o.setOfficialId(generateId("OFC", "officials", "official_id"));
+        if (o.getId() == 0) {
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO officials (official_id,last_name,first_name,middle_initial,sex,mobile_phone,date_of_birth,age,place_of_birth,current_position,years_in_service,school,employee_number,school_address,present_address,emergency_contact_name,emergency_contact_no,photo_path,qr_code_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+            bindOfficial(ps, o); ps.executeUpdate();
+            ResultSet k = ps.getGeneratedKeys(); if (k.next()) o.setId(k.getInt(1));
+        } else {
+            PreparedStatement ps = connection.prepareStatement("UPDATE officials SET last_name=?,first_name=?,middle_initial=?,sex=?,mobile_phone=?,date_of_birth=?,age=?,place_of_birth=?,current_position=?,years_in_service=?,school=?,employee_number=?,school_address=?,present_address=?,emergency_contact_name=?,emergency_contact_no=?,photo_path=?,qr_code_path=? WHERE id=?");
+            bindOfficialUpdate(ps, o); ps.executeUpdate();
+        }
+        saveOfficialChildren(o);
+        return o.getId();
+    }
+
+    public void deleteOfficial(int id) throws SQLException {
+        inTransaction(() -> {
+            deleteChildren("official", id);
+            try (PreparedStatement ps = connection.prepareStatement("DELETE FROM officials WHERE id=?")) {
+                ps.setInt(1,id);
+                ps.executeUpdate();
+            }
+            return null;
+        });
+    }
+
+    public void updateOfficialQrCode(int id, String qrCodePath) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement("UPDATE officials SET qr_code_path=? WHERE id=?")) {
+            ps.setString(1, qrCodePath);
+            ps.setInt(2, id);
+            ps.executeUpdate();
+        }
+    }
+
+    private void saveOfficialChildren(Official o) throws SQLException {
+        int id = o.getId();
+        deleteChildren("official", id);
+        for (Official.EducationalQualification eq : o.getEducationalQualifications()) {
+            try (PreparedStatement ps = connection.prepareStatement("INSERT INTO official_education (parent_id,level,course,school,year_graduated,credits_earned,awards_received) VALUES (?,?,?,?,?,?,?)")) {
+                ps.setInt(1,id); ps.setString(2,eq.level); ps.setString(3,eq.course); ps.setString(4,eq.school);
+                ps.setString(5,eq.yearGraduated); ps.setString(6,eq.creditsEarned); ps.setString(7,eq.awardsReceived);
+                ps.executeUpdate();
+            }
+        }
+        for (Official.SportsTraining st : o.getSportsTrainings()) {
+            try (PreparedStatement ps = connection.prepareStatement("INSERT INTO official_sports_training (parent_id,title,date_of_training,num_hours,conducted_by) VALUES (?,?,?,?,?)")) {
+                ps.setInt(1,id); ps.setString(2,st.title); ps.setString(3,st.dateOfTraining);
+                ps.setInt(4,st.numberOfHours); ps.setString(5,st.conductedBy); ps.executeUpdate();
+            }
+        }
+        for (Official.TrackRecord tr : o.getTrackRecords()) {
+            try (PreparedStatement ps = connection.prepareStatement("INSERT INTO official_track_record (parent_id,meet_attended,inclusive_dates,event,awards_received) VALUES (?,?,?,?,?)")) {
+                ps.setInt(1,id); ps.setString(2,tr.athleteMeetAttended); ps.setString(3,tr.inclusiveDates);
+                ps.setString(4,tr.event); ps.setString(5,tr.awardsReceived); ps.executeUpdate();
+            }
+        }
+    }
+
+    private void loadOfficialChildren(Official o) throws SQLException {
+        int id = o.getId();
+        List<Official.EducationalQualification> eqs = new ArrayList<>();
+        ResultSet r1 = connection.prepareStatement("SELECT * FROM official_education WHERE parent_id=" + id).executeQuery();
+        while (r1.next()) { Official.EducationalQualification eq = new Official.EducationalQualification();
+            eq.level=r1.getString("level"); eq.course=r1.getString("course"); eq.school=r1.getString("school");
+            eq.yearGraduated=r1.getString("year_graduated"); eq.creditsEarned=r1.getString("credits_earned");
+            eq.awardsReceived=r1.getString("awards_received"); eqs.add(eq); }
+        o.setEducationalQualifications(eqs);
+        List<Official.SportsTraining> sts = new ArrayList<>();
+        ResultSet r2 = connection.prepareStatement("SELECT * FROM official_sports_training WHERE parent_id=" + id).executeQuery();
+        while (r2.next()) { Official.SportsTraining st = new Official.SportsTraining();
+            st.title=r2.getString("title"); st.dateOfTraining=r2.getString("date_of_training");
+            st.numberOfHours=r2.getInt("num_hours"); st.conductedBy=r2.getString("conducted_by"); sts.add(st); }
+        o.setSportsTrainings(sts);
+        List<Official.TrackRecord> trs = new ArrayList<>();
+        ResultSet r3 = connection.prepareStatement("SELECT * FROM official_track_record WHERE parent_id=" + id).executeQuery();
+        while (r3.next()) { Official.TrackRecord tr = new Official.TrackRecord();
+            tr.athleteMeetAttended=r3.getString("meet_attended"); tr.inclusiveDates=r3.getString("inclusive_dates");
+            tr.event=r3.getString("event"); tr.awardsReceived=r3.getString("awards_received"); trs.add(tr); }
+        o.setTrackRecords(trs);
+    }
+
+    private Official mapOfficial(ResultSet rs) throws SQLException {
+        Official o = new Official();
+        o.setId(rs.getInt("id")); o.setOfficialId(rs.getString("official_id"));
+        o.setLastName(rs.getString("last_name")); o.setFirstName(rs.getString("first_name"));
+        o.setMiddleInitial(rs.getString("middle_initial")); o.setSex(rs.getString("sex"));
+        o.setMobilePhone(rs.getString("mobile_phone"));
+        String dob = rs.getString("date_of_birth"); if (dob!=null) o.setDateOfBirth(LocalDate.parse(dob));
+        o.setAge(rs.getInt("age")); o.setPlaceOfBirth(rs.getString("place_of_birth"));
+        o.setCurrentPosition(rs.getString("current_position")); o.setYearsInService(rs.getInt("years_in_service"));
+        o.setSchool(rs.getString("school")); o.setEmployeeNumber(rs.getString("employee_number"));
+        o.setSchoolAddress(rs.getString("school_address")); o.setPresentAddress(rs.getString("present_address"));
+        o.setEmergencyContactName(rs.getString("emergency_contact_name")); o.setEmergencyContactNo(rs.getString("emergency_contact_no"));
+        o.setPhotoPath(rs.getString("photo_path")); o.setQrCodePath(rs.getString("qr_code_path"));
+        return o;
+    }
+
+    private void bindOfficial(PreparedStatement ps, Official o) throws SQLException {
+        ps.setString(1,o.getOfficialId()); ps.setString(2,o.getLastName()); ps.setString(3,o.getFirstName());
+        ps.setString(4,o.getMiddleInitial()); ps.setString(5,o.getSex()); ps.setString(6,o.getMobilePhone());
+        ps.setString(7,o.getDateOfBirth()!=null?o.getDateOfBirth().toString():null); ps.setInt(8,o.getAge());
+        ps.setString(9,o.getPlaceOfBirth()); ps.setString(10,o.getCurrentPosition()); ps.setInt(11,o.getYearsInService());
+        ps.setString(12,o.getSchool()); ps.setString(13,o.getEmployeeNumber()); ps.setString(14,o.getSchoolAddress());
+        ps.setString(15,o.getPresentAddress()); ps.setString(16,o.getEmergencyContactName());
+        ps.setString(17,o.getEmergencyContactNo()); ps.setString(18,o.getPhotoPath()); ps.setString(19,o.getQrCodePath());
+    }
+
+    private void bindOfficialUpdate(PreparedStatement ps, Official o) throws SQLException {
+        ps.setString(1,o.getLastName()); ps.setString(2,o.getFirstName()); ps.setString(3,o.getMiddleInitial());
+        ps.setString(4,o.getSex()); ps.setString(5,o.getMobilePhone());
+        ps.setString(6,o.getDateOfBirth()!=null?o.getDateOfBirth().toString():null); ps.setInt(7,o.getAge());
+        ps.setString(8,o.getPlaceOfBirth()); ps.setString(9,o.getCurrentPosition()); ps.setInt(10,o.getYearsInService());
+        ps.setString(11,o.getSchool()); ps.setString(12,o.getEmployeeNumber()); ps.setString(13,o.getSchoolAddress());
+        ps.setString(14,o.getPresentAddress()); ps.setString(15,o.getEmergencyContactName());
+        ps.setString(16,o.getEmergencyContactNo()); ps.setString(17,o.getPhotoPath()); ps.setString(18,o.getQrCodePath());
+        ps.setInt(19,o.getId());
+    }
+
+    // ── Coach (mirrors Official) ───────────────────────────────────────────────
+
+    public List<Coach> getAllCoaches() throws SQLException {
+        List<Coach> list = new ArrayList<>();
+        ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM coaches ORDER BY last_name, first_name");
+        while (rs.next()) { Coach c = mapCoach(rs); loadCoachChildren(c); list.add(c); }
+        return list;
+    }
+
+    public List<Coach> searchCoaches(String q) throws SQLException {
+        List<Coach> list = new ArrayList<>();
+        String like = "%" + q.toLowerCase() + "%";
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM coaches WHERE lower(last_name) LIKE ? OR lower(first_name) LIKE ? OR lower(school) LIKE ? OR coach_id LIKE ? ORDER BY last_name");
+        ps.setString(1,like); ps.setString(2,like); ps.setString(3,like); ps.setString(4,like);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) { Coach c = mapCoach(rs); loadCoachChildren(c); list.add(c); }
+        return list;
+    }
+
+    public Coach findCoachByCoachId(String coachId) throws SQLException {
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM coaches WHERE coach_id=?");
+        ps.setString(1, coachId);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            Coach c = mapCoach(rs);
+            loadCoachChildren(c);
+            return c;
+        }
+        return null;
+    }
+
+    public int saveCoach(Coach c) throws SQLException {
+        return inTransaction(() -> saveCoachInternal(c));
+    }
+
+    private int saveCoachInternal(Coach c) throws SQLException {
+        if (c.getCoachId() == null || c.getCoachId().isBlank())
+            c.setCoachId(generateId("CCH", "coaches", "coach_id"));
+        if (c.getId() == 0) {
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO coaches (coach_id,last_name,first_name,middle_initial,sex,mobile_phone,date_of_birth,age,place_of_birth,current_position,years_in_service,school,employee_number,school_address,present_address,emergency_contact_name,emergency_contact_no,photo_path,qr_code_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+            bindCoach(ps, c); ps.executeUpdate();
+            ResultSet k = ps.getGeneratedKeys(); if (k.next()) c.setId(k.getInt(1));
+        } else {
+            PreparedStatement ps = connection.prepareStatement("UPDATE coaches SET last_name=?,first_name=?,middle_initial=?,sex=?,mobile_phone=?,date_of_birth=?,age=?,place_of_birth=?,current_position=?,years_in_service=?,school=?,employee_number=?,school_address=?,present_address=?,emergency_contact_name=?,emergency_contact_no=?,photo_path=?,qr_code_path=? WHERE id=?");
+            bindCoachUpdate(ps, c); ps.executeUpdate();
+        }
+        saveCoachChildren(c);
+        return c.getId();
+    }
+
+    public void deleteCoach(int id) throws SQLException {
+        inTransaction(() -> {
+            deleteChildren("coach", id);
+            try (PreparedStatement ps = connection.prepareStatement("DELETE FROM coaches WHERE id=?")) {
+                ps.setInt(1,id);
+                ps.executeUpdate();
+            }
+            return null;
+        });
+    }
+
+    public void updateCoachQrCode(int id, String qrCodePath) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement("UPDATE coaches SET qr_code_path=? WHERE id=?")) {
+            ps.setString(1, qrCodePath);
+            ps.setInt(2, id);
+            ps.executeUpdate();
+        }
+    }
+
+    private void deleteChildren(String type, int parentId) throws SQLException {
+        for (String suffix : List.of("education", "sports_training", "track_record")) {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "DELETE FROM " + type + "_" + suffix + " WHERE parent_id=?")) {
+                ps.setInt(1, parentId);
+                ps.executeUpdate();
+            }
+        }
+    }
+
+    private void saveCoachChildren(Coach c) throws SQLException {
+        int id = c.getId();
+        deleteChildren("coach", id);
+        for (Official.EducationalQualification eq : c.getEducationalQualifications()) {
+            try (PreparedStatement ps = connection.prepareStatement("INSERT INTO coach_education (parent_id,level,course,school,year_graduated,credits_earned,awards_received) VALUES (?,?,?,?,?,?,?)")) {
+                ps.setInt(1,id); ps.setString(2,eq.level); ps.setString(3,eq.course); ps.setString(4,eq.school);
+                ps.setString(5,eq.yearGraduated); ps.setString(6,eq.creditsEarned); ps.setString(7,eq.awardsReceived); ps.executeUpdate();
+            }
+        }
+        for (Official.SportsTraining st : c.getSportsTrainings()) {
+            try (PreparedStatement ps = connection.prepareStatement("INSERT INTO coach_sports_training (parent_id,title,date_of_training,num_hours,conducted_by) VALUES (?,?,?,?,?)")) {
+                ps.setInt(1,id); ps.setString(2,st.title); ps.setString(3,st.dateOfTraining);
+                ps.setInt(4,st.numberOfHours); ps.setString(5,st.conductedBy); ps.executeUpdate();
+            }
+        }
+        for (Official.TrackRecord tr : c.getTrackRecords()) {
+            try (PreparedStatement ps = connection.prepareStatement("INSERT INTO coach_track_record (parent_id,meet_attended,inclusive_dates,event,awards_received) VALUES (?,?,?,?,?)")) {
+                ps.setInt(1,id); ps.setString(2,tr.athleteMeetAttended); ps.setString(3,tr.inclusiveDates);
+                ps.setString(4,tr.event); ps.setString(5,tr.awardsReceived); ps.executeUpdate();
+            }
+        }
+    }
+
+    private void loadCoachChildren(Coach c) throws SQLException {
+        int id = c.getId();
+        List<Official.EducationalQualification> eqs = new ArrayList<>();
+        ResultSet r1 = connection.prepareStatement("SELECT * FROM coach_education WHERE parent_id=" + id).executeQuery();
+        while (r1.next()) { Official.EducationalQualification eq = new Official.EducationalQualification();
+            eq.level=r1.getString("level"); eq.course=r1.getString("course"); eq.school=r1.getString("school");
+            eq.yearGraduated=r1.getString("year_graduated"); eq.creditsEarned=r1.getString("credits_earned");
+            eq.awardsReceived=r1.getString("awards_received"); eqs.add(eq); }
+        c.setEducationalQualifications(eqs);
+        List<Official.SportsTraining> sts = new ArrayList<>();
+        ResultSet r2 = connection.prepareStatement("SELECT * FROM coach_sports_training WHERE parent_id=" + id).executeQuery();
+        while (r2.next()) { Official.SportsTraining st = new Official.SportsTraining();
+            st.title=r2.getString("title"); st.dateOfTraining=r2.getString("date_of_training");
+            st.numberOfHours=r2.getInt("num_hours"); st.conductedBy=r2.getString("conducted_by"); sts.add(st); }
+        c.setSportsTrainings(sts);
+        List<Official.TrackRecord> trs = new ArrayList<>();
+        ResultSet r3 = connection.prepareStatement("SELECT * FROM coach_track_record WHERE parent_id=" + id).executeQuery();
+        while (r3.next()) { Official.TrackRecord tr = new Official.TrackRecord();
+            tr.athleteMeetAttended=r3.getString("meet_attended"); tr.inclusiveDates=r3.getString("inclusive_dates");
+            tr.event=r3.getString("event"); tr.awardsReceived=r3.getString("awards_received"); trs.add(tr); }
+        c.setTrackRecords(trs);
+    }
+
+    private Coach mapCoach(ResultSet rs) throws SQLException {
+        Coach c = new Coach();
+        c.setId(rs.getInt("id")); c.setCoachId(rs.getString("coach_id"));
+        c.setLastName(rs.getString("last_name")); c.setFirstName(rs.getString("first_name"));
+        c.setMiddleInitial(rs.getString("middle_initial")); c.setSex(rs.getString("sex"));
+        c.setMobilePhone(rs.getString("mobile_phone"));
+        String dob = rs.getString("date_of_birth"); if (dob!=null) c.setDateOfBirth(LocalDate.parse(dob));
+        c.setAge(rs.getInt("age")); c.setPlaceOfBirth(rs.getString("place_of_birth"));
+        c.setCurrentPosition(rs.getString("current_position")); c.setYearsInService(rs.getInt("years_in_service"));
+        c.setSchool(rs.getString("school")); c.setEmployeeNumber(rs.getString("employee_number"));
+        c.setSchoolAddress(rs.getString("school_address")); c.setPresentAddress(rs.getString("present_address"));
+        c.setEmergencyContactName(rs.getString("emergency_contact_name")); c.setEmergencyContactNo(rs.getString("emergency_contact_no"));
+        c.setPhotoPath(rs.getString("photo_path")); c.setQrCodePath(rs.getString("qr_code_path"));
+        return c;
+    }
+
+    private void bindCoach(PreparedStatement ps, Coach c) throws SQLException {
+        ps.setString(1,c.getCoachId()); ps.setString(2,c.getLastName()); ps.setString(3,c.getFirstName());
+        ps.setString(4,c.getMiddleInitial()); ps.setString(5,c.getSex()); ps.setString(6,c.getMobilePhone());
+        ps.setString(7,c.getDateOfBirth()!=null?c.getDateOfBirth().toString():null); ps.setInt(8,c.getAge());
+        ps.setString(9,c.getPlaceOfBirth()); ps.setString(10,c.getCurrentPosition()); ps.setInt(11,c.getYearsInService());
+        ps.setString(12,c.getSchool()); ps.setString(13,c.getEmployeeNumber()); ps.setString(14,c.getSchoolAddress());
+        ps.setString(15,c.getPresentAddress()); ps.setString(16,c.getEmergencyContactName());
+        ps.setString(17,c.getEmergencyContactNo()); ps.setString(18,c.getPhotoPath()); ps.setString(19,c.getQrCodePath());
+    }
+
+    private void bindCoachUpdate(PreparedStatement ps, Coach c) throws SQLException {
+        ps.setString(1,c.getLastName()); ps.setString(2,c.getFirstName()); ps.setString(3,c.getMiddleInitial());
+        ps.setString(4,c.getSex()); ps.setString(5,c.getMobilePhone());
+        ps.setString(6,c.getDateOfBirth()!=null?c.getDateOfBirth().toString():null); ps.setInt(7,c.getAge());
+        ps.setString(8,c.getPlaceOfBirth()); ps.setString(9,c.getCurrentPosition()); ps.setInt(10,c.getYearsInService());
+        ps.setString(11,c.getSchool()); ps.setString(12,c.getEmployeeNumber()); ps.setString(13,c.getSchoolAddress());
+        ps.setString(14,c.getPresentAddress()); ps.setString(15,c.getEmergencyContactName());
+        ps.setString(16,c.getEmergencyContactNo()); ps.setString(17,c.getPhotoPath()); ps.setString(18,c.getQrCodePath());
+        ps.setInt(19,c.getId());
+    }
+
+    // ── Equipment ─────────────────────────────────────────────────────────────
+
+    public List<Equipment> getAllEquipment() throws SQLException {
+        List<Equipment> list = new ArrayList<>();
+        ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM equipment ORDER BY id DESC");
+        while (rs.next()) {
+            Equipment e = mapEquipment(rs);
+            e.setItems(getEquipmentItems(e.getId()));
+            list.add(e);
+        }
+        return list;
+    }
+
+    public List<Equipment> searchEquipment(String q) throws SQLException {
+        List<Equipment> list = new ArrayList<>();
+        String like = "%" + q.toLowerCase() + "%";
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM equipment WHERE lower(borrower_name) LIKE ? OR lower(school) LIKE ? OR lower(event) LIKE ? OR equipment_id LIKE ? ORDER BY id DESC");
+        ps.setString(1,like); ps.setString(2,like); ps.setString(3,like); ps.setString(4,like);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            Equipment e = mapEquipment(rs);
+            e.setItems(getEquipmentItems(e.getId()));
+            list.add(e);
+        }
+        return list;
+    }
+
+    public int saveEquipment(Equipment e) throws SQLException {
+        return inTransaction(() -> saveEquipmentInternal(e));
+    }
+
+    private int saveEquipmentInternal(Equipment e) throws SQLException {
+        if (e.getEquipmentId() == null || e.getEquipmentId().isBlank())
+            e.setEquipmentId(generateId("EQP", "equipment", "equipment_id"));
+        if (e.getId() == 0) {
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO equipment (equipment_id,borrower_name,designation,school,event,mobile_no,date,issued_by,issued_to) VALUES (?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+            bindEquipment(ps,e); ps.executeUpdate();
+            ResultSet k = ps.getGeneratedKeys(); if (k.next()) e.setId(k.getInt(1));
+        } else {
+            PreparedStatement ps = connection.prepareStatement("UPDATE equipment SET borrower_name=?,designation=?,school=?,event=?,mobile_no=?,date=?,issued_by=?,issued_to=? WHERE id=?");
+            bindEquipmentUpdate(ps,e); ps.executeUpdate();
+        }
+        saveEquipmentItems(e);
+        return e.getId();
+    }
+
+    public void deleteEquipment(int id) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement("DELETE FROM equipment WHERE id=?")) {
+            ps.setInt(1,id);
+            ps.executeUpdate();
+        }
+    }
+
+    public void updateAthleteQrCode(int id, String qrCodePath) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement("UPDATE athletes SET qr_code_path=? WHERE id=?")) {
+            ps.setString(1, qrCodePath);
+            ps.setInt(2, id);
+            ps.executeUpdate();
+        }
+    }
+
+    public List<Equipment.EquipmentItem> getEquipmentItems(int equipmentId) throws SQLException {
+        List<Equipment.EquipmentItem> items = new ArrayList<>();
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM equipment_items WHERE equipment_id=?");
+        ps.setInt(1, equipmentId);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            Equipment.EquipmentItem item = new Equipment.EquipmentItem();
+            item.id = rs.getInt("id"); item.equipmentId = equipmentId;
+            item.qty = rs.getInt("qty"); item.unit = rs.getString("unit");
+            item.makeAndDescription = rs.getString("make_and_description");
+            String db = rs.getString("date_borrowed"); if (db!=null) item.dateBorrowed = LocalDate.parse(db);
+            String dr = rs.getString("date_returned"); if (dr!=null) item.dateReturned = LocalDate.parse(dr);
+            item.remarks = rs.getString("remarks");
+            items.add(item);
+        }
+        return items;
+    }
+
+    private void saveEquipmentItems(Equipment e) throws SQLException {
+        try (PreparedStatement delete = connection.prepareStatement("DELETE FROM equipment_items WHERE equipment_id=?")) {
+            delete.setInt(1, e.getId());
+            delete.executeUpdate();
+        }
+        if (e.getItems() == null) return;
+        for (Equipment.EquipmentItem item : e.getItems()) {
+            try (PreparedStatement ps = connection.prepareStatement("INSERT INTO equipment_items (equipment_id,qty,unit,make_and_description,date_borrowed,date_returned,remarks) VALUES (?,?,?,?,?,?,?)")) {
+                ps.setInt(1,e.getId()); ps.setInt(2,item.qty); ps.setString(3,item.unit);
+                ps.setString(4,item.makeAndDescription);
+                ps.setString(5,item.dateBorrowed!=null?item.dateBorrowed.toString():null);
+                ps.setString(6,item.dateReturned!=null?item.dateReturned.toString():null);
+                ps.setString(7,item.remarks); ps.executeUpdate();
+            }
+        }
+    }
+
+    private Equipment mapEquipment(ResultSet rs) throws SQLException {
+        Equipment e = new Equipment();
+        e.setId(rs.getInt("id")); e.setEquipmentId(rs.getString("equipment_id"));
+        e.setBorrowerName(rs.getString("borrower_name")); e.setDesignation(rs.getString("designation"));
+        e.setSchool(rs.getString("school")); e.setEvent(rs.getString("event"));
+        e.setMobileNo(rs.getString("mobile_no"));
+        String d = rs.getString("date"); if (d!=null) e.setDate(LocalDate.parse(d));
+        e.setIssuedBy(rs.getString("issued_by")); e.setIssuedTo(rs.getString("issued_to"));
+        return e;
+    }
+
+    private void bindEquipment(PreparedStatement ps, Equipment e) throws SQLException {
+        ps.setString(1,e.getEquipmentId()); ps.setString(2,e.getBorrowerName()); ps.setString(3,e.getDesignation());
+        ps.setString(4,e.getSchool()); ps.setString(5,e.getEvent()); ps.setString(6,e.getMobileNo());
+        ps.setString(7,e.getDate()!=null?e.getDate().toString():null);
+        ps.setString(8,e.getIssuedBy()); ps.setString(9,e.getIssuedTo());
+    }
+
+    private void bindEquipmentUpdate(PreparedStatement ps, Equipment e) throws SQLException {
+        ps.setString(1,e.getBorrowerName()); ps.setString(2,e.getDesignation());
+        ps.setString(3,e.getSchool()); ps.setString(4,e.getEvent()); ps.setString(5,e.getMobileNo());
+        ps.setString(6,e.getDate()!=null?e.getDate().toString():null);
+        ps.setString(7,e.getIssuedBy()); ps.setString(8,e.getIssuedTo());
+        ps.setInt(9,e.getId());
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+
+    private void createUserTable() throws SQLException {
+        connection.createStatement().execute(
+            "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "username TEXT UNIQUE, password_hash TEXT, role TEXT, full_name TEXT, active INTEGER DEFAULT 1, " +
+            "must_change_password INTEGER DEFAULT 0)");
+        if (!hasColumn("users", "must_change_password")) {
+            connection.createStatement().execute(
+                "ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0");
+        }
+    }
+
+    private boolean hasColumn(String table, String column) throws SQLException {
+        try (Statement st = connection.createStatement();
+             ResultSet rs = st.executeQuery("PRAGMA table_info(" + table + ")")) {
+            while (rs.next()) {
+                if (column.equalsIgnoreCase(rs.getString("name"))) return true;
+            }
+            return false;
+        }
+    }
+
+    public void ensureDefaultAdmin() throws SQLException {
+        createUserTable();
+        int userCount;
+        try (Statement st = connection.createStatement();
+             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM users")) {
+            userCount = rs.next() ? rs.getInt(1) : 0;
+        }
+        if (userCount == 0) {
+            com.sdms.model.User admin = new com.sdms.model.User();
+            admin.setUsername("admin");
+            admin.setPasswordHash(com.sdms.util.PasswordUtil.hash("admin123"));
+            admin.setRole("ADMIN");
+            admin.setFullName("System Administrator");
+            admin.setActive(true);
+            admin.setMustChangePassword(true);
+            saveUser(admin);
+        } else {
+            User admin = findUserByUsername("admin");
+            if (admin != null && com.sdms.util.PasswordUtil.verify("admin123", admin.getPasswordHash())) {
+                admin.setMustChangePassword(true);
+                saveUser(admin);
+            }
+        }
+    }
+
+    public java.util.List<com.sdms.model.User> getAllUsers() throws SQLException {
+        java.util.List<com.sdms.model.User> list = new ArrayList<>();
+        ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM users ORDER BY username");
+        while (rs.next()) list.add(mapUser(rs));
+        return list;
+    }
+
+    public com.sdms.model.User findUserByUsername(String username) throws SQLException {
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM users WHERE username=?");
+        ps.setString(1, username);
+        ResultSet rs = ps.executeQuery();
+        return rs.next() ? mapUser(rs) : null;
+    }
+
+    public void saveUser(com.sdms.model.User u) throws SQLException {
+        if (u.getId() == 0) {
+            PreparedStatement ps = connection.prepareStatement(
+                "INSERT INTO users (username, password_hash, role, full_name, active, must_change_password) VALUES (?,?,?,?,?,?)",
+                Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1,u.getUsername()); ps.setString(2,u.getPasswordHash());
+            ps.setString(3,u.getRole()); ps.setString(4,u.getFullName());
+            ps.setInt(5, u.isActive() ? 1 : 0);
+            ps.setInt(6, u.isMustChangePassword() ? 1 : 0);
+            ps.executeUpdate();
+            ResultSet k = ps.getGeneratedKeys(); if (k.next()) u.setId(k.getInt(1));
+        } else {
+            PreparedStatement ps = connection.prepareStatement(
+                "UPDATE users SET username=?, password_hash=?, role=?, full_name=?, active=?, must_change_password=? WHERE id=?");
+            ps.setString(1,u.getUsername()); ps.setString(2,u.getPasswordHash());
+            ps.setString(3,u.getRole()); ps.setString(4,u.getFullName());
+            ps.setInt(5, u.isActive() ? 1 : 0);
+            ps.setInt(6, u.isMustChangePassword() ? 1 : 0);
+            ps.setInt(7, u.getId());
+            ps.executeUpdate();
+        }
+    }
+
+    public void deleteUser(int id) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement("DELETE FROM users WHERE id=?")) {
+            ps.setInt(1,id);
+            ps.executeUpdate();
+        }
+    }
+
+    private com.sdms.model.User mapUser(ResultSet rs) throws SQLException {
+        com.sdms.model.User user = new com.sdms.model.User(
+            rs.getInt("id"), rs.getString("username"), rs.getString("password_hash"),
+            rs.getString("role"), rs.getString("full_name"), rs.getInt("active") == 1);
+        user.setMustChangePassword(rs.getInt("must_change_password") == 1);
+        return user;
+    }
+
+    public int countActiveAdmins() throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT COUNT(*) FROM users WHERE role='ADMIN' AND active=1");
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() ? rs.getInt(1) : 0;
+        }
+    }
+
+    // ── Global Search ─────────────────────────────────────────────────────────
+
+    public java.util.List<com.sdms.model.SearchResult> globalSearch(String query) throws SQLException {
+        java.util.List<com.sdms.model.SearchResult> results = new ArrayList<>();
+        String like = "%" + query.toLowerCase() + "%";
+
+        PreparedStatement a = connection.prepareStatement(
+            "SELECT id, athlete_id, last_name, first_name, school FROM athletes " +
+            "WHERE lower(last_name) LIKE ? OR lower(first_name) LIKE ? OR athlete_id LIKE ? OR lower(school) LIKE ? LIMIT 20");
+        a.setString(1,like); a.setString(2,like); a.setString(3,like); a.setString(4,like);
+        ResultSet ra = a.executeQuery();
+        while (ra.next()) results.add(new com.sdms.model.SearchResult(
+            com.sdms.model.SearchResult.Module.ATHLETE, ra.getInt("id"),
+            ra.getString("athlete_id"),
+            ra.getString("last_name") + ", " + ra.getString("first_name"),
+            ra.getString("school")));
+
+        PreparedStatement o = connection.prepareStatement(
+            "SELECT id, official_id, last_name, first_name, current_position, school FROM officials " +
+            "WHERE lower(last_name) LIKE ? OR lower(first_name) LIKE ? OR official_id LIKE ? OR lower(school) LIKE ? LIMIT 20");
+        o.setString(1,like); o.setString(2,like); o.setString(3,like); o.setString(4,like);
+        ResultSet ro = o.executeQuery();
+        while (ro.next()) results.add(new com.sdms.model.SearchResult(
+            com.sdms.model.SearchResult.Module.OFFICIAL, ro.getInt("id"),
+            ro.getString("official_id"),
+            ro.getString("last_name") + ", " + ro.getString("first_name"),
+            ro.getString("current_position") + " — " + ro.getString("school")));
+
+        PreparedStatement c = connection.prepareStatement(
+            "SELECT id, coach_id, last_name, first_name, current_position, school FROM coaches " +
+            "WHERE lower(last_name) LIKE ? OR lower(first_name) LIKE ? OR coach_id LIKE ? OR lower(school) LIKE ? LIMIT 20");
+        c.setString(1,like); c.setString(2,like); c.setString(3,like); c.setString(4,like);
+        ResultSet rc = c.executeQuery();
+        while (rc.next()) results.add(new com.sdms.model.SearchResult(
+            com.sdms.model.SearchResult.Module.COACH, rc.getInt("id"),
+            rc.getString("coach_id"),
+            rc.getString("last_name") + ", " + rc.getString("first_name"),
+            rc.getString("current_position") + " — " + rc.getString("school")));
+
+        PreparedStatement e = connection.prepareStatement(
+            "SELECT id, equipment_id, borrower_name, school, event FROM equipment " +
+            "WHERE lower(borrower_name) LIKE ? OR equipment_id LIKE ? OR lower(school) LIKE ? OR lower(event) LIKE ? LIMIT 20");
+        e.setString(1,like); e.setString(2,like); e.setString(3,like); e.setString(4,like);
+        ResultSet re = e.executeQuery();
+        while (re.next()) results.add(new com.sdms.model.SearchResult(
+            com.sdms.model.SearchResult.Module.EQUIPMENT, re.getInt("id"),
+            re.getString("equipment_id"), re.getString("borrower_name"),
+            re.getString("event") + " — " + re.getString("school")));
+
+        return results;
+    }
+
+    // ── School filter helpers ─────────────────────────────────────────────────
+
+    public java.util.List<String> getAllSchools() throws SQLException {
+        java.util.List<String> schools = new ArrayList<>();
+        ResultSet rs = connection.createStatement().executeQuery(
+            "SELECT DISTINCT school FROM athletes WHERE school IS NOT NULL AND school != '' " +
+            "UNION SELECT DISTINCT school FROM officials WHERE school IS NOT NULL AND school != '' " +
+            "UNION SELECT DISTINCT school FROM coaches WHERE school IS NOT NULL AND school != '' " +
+            "ORDER BY school");
+        while (rs.next()) schools.add(rs.getString(1));
+        return schools;
+    }
+
+    public java.util.List<Athlete> getAthletesBySchool(String school) throws SQLException {
+        java.util.List<Athlete> list = new ArrayList<>();
+        PreparedStatement ps = connection.prepareStatement(
+            "SELECT * FROM athletes WHERE school=? ORDER BY last_name, first_name");
+        ps.setString(1, school);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) list.add(mapAthlete(rs));
+        return list;
+    }
+
+    public java.util.List<Official> getOfficialsBySchool(String school) throws SQLException {
+        java.util.List<Official> list = new ArrayList<>();
+        PreparedStatement ps = connection.prepareStatement(
+            "SELECT * FROM officials WHERE school=? ORDER BY last_name, first_name");
+        ps.setString(1, school);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) { Official o = mapOfficial(rs); loadOfficialChildren(o); list.add(o); }
+        return list;
+    }
+
+    public java.util.List<Coach> getCoachesBySchool(String school) throws SQLException {
+        java.util.List<Coach> list = new ArrayList<>();
+        PreparedStatement ps = connection.prepareStatement(
+            "SELECT * FROM coaches WHERE school=? ORDER BY last_name, first_name");
+        ps.setString(1, school);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) { Coach c = mapCoach(rs); loadCoachChildren(c); list.add(c); }
+        return list;
+    }
+}

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sdms.controller.DashboardController"
+      styleClass="module-header" alignment="TOP_LEFT">
+
+    <padding><Insets top="30" bottom="30" left="30" right="30"/></padding>
+
+    <Label text="Dashboard" styleClass="module-title" style="-fx-padding: 0 0 24 0;"/>
+
+    <!-- Stats cards row -->
+    <HBox spacing="20">
+        <!-- Athletes -->
+        <VBox styleClass="stat-card" prefWidth="200" prefHeight="120" alignment="CENTER" spacing="8">
+            <Label text="Athletes" style="-fx-font-size: 13px; -fx-text-fill: #64748B;"/>
+            <Label fx:id="lblAthleteCount" text="0" style="-fx-font-size: 42px; -fx-font-weight: bold; -fx-text-fill: #1E6FA8;"/>
+            <Label text="registered" style="-fx-font-size: 11px; -fx-text-fill: #94A3B8;"/>
+        </VBox>
+        <!-- Officials -->
+        <VBox styleClass="stat-card" prefWidth="200" prefHeight="120" alignment="CENTER" spacing="8">
+            <Label text="Officials" style="-fx-font-size: 13px; -fx-text-fill: #64748B;"/>
+            <Label fx:id="lblOfficialCount" text="0" style="-fx-font-size: 42px; -fx-font-weight: bold; -fx-text-fill: #0F6E56;"/>
+            <Label text="registered" style="-fx-font-size: 11px; -fx-text-fill: #94A3B8;"/>
+        </VBox>
+        <!-- Coaches -->
+        <VBox styleClass="stat-card" prefWidth="200" prefHeight="120" alignment="CENTER" spacing="8">
+            <Label text="Coaches" style="-fx-font-size: 13px; -fx-text-fill: #64748B;"/>
+            <Label fx:id="lblCoachCount" text="0" style="-fx-font-size: 42px; -fx-font-weight: bold; -fx-text-fill: #854F0B;"/>
+            <Label text="registered" style="-fx-font-size: 11px; -fx-text-fill: #94A3B8;"/>
+        </VBox>
+        <!-- Equipment -->
+        <VBox styleClass="stat-card" prefWidth="200" prefHeight="120" alignment="CENTER" spacing="8">
+            <Label text="Equipment Records" style="-fx-font-size: 13px; -fx-text-fill: #64748B;"/>
+            <Label fx:id="lblEquipmentCount" text="0" style="-fx-font-size: 42px; -fx-font-weight: bold; -fx-text-fill: #993556;"/>
+            <Label text="borrowing records" style="-fx-font-size: 11px; -fx-text-fill: #94A3B8;"/>
+        </VBox>
+    </HBox>
+
+</VBox>

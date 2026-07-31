@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sdms.controller.QRScanController"
+      prefWidth="800" prefHeight="620" styleClass="form-root" spacing="10">
+
+    <HBox styleClass="form-header" alignment="CENTER_LEFT" spacing="12">
+        <padding><Insets top="14" bottom="14" left="20" right="20"/></padding>
+        <Label text="QR Scanner" styleClass="form-title"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label text="Scan input ready" styleClass="id-badge"/>
+    </HBox>
+
+    <VBox spacing="10" style="-fx-padding: 12 20 8 20;" VBox.vgrow="ALWAYS">
+        <Label text="Connect a USB scanner, place the cursor in Scan Input, then scan. Most scanners behave like a keyboard and press Enter automatically."
+               wrapText="true" styleClass="hint-label"/>
+
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <Label text="Scan Input" minWidth="80"/>
+            <TextField fx:id="txtScan" HBox.hgrow="ALWAYS" onAction="#onScan" promptText="Scan QR here..."/>
+            <Button text="Scan" onAction="#onScan" styleClass="btn-primary"/>
+        </HBox>
+
+        <Label text="Raw Payload"/>
+        <TextArea fx:id="txtRaw" prefRowCount="2" wrapText="true" editable="false"/>
+
+        <Label text="Record Details" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e3a5f;"/>
+        <ScrollPane fitToWidth="true" pannable="true" VBox.vgrow="ALWAYS"
+                    style="-fx-background-color: transparent; -fx-border-color: #d7dee8;">
+            <content>
+                <HBox spacing="16" alignment="TOP_LEFT" style="-fx-padding: 12; -fx-background-color: white;">
+                    <VBox minWidth="126" maxWidth="126" spacing="6" alignment="TOP_CENTER">
+                        <StackPane minWidth="118" minHeight="132" prefWidth="118" prefHeight="132"
+                                   style="-fx-background-color: #f5f7fa; -fx-border-color: #c7d2e0; -fx-border-width: 1;">
+                            <ImageView fx:id="imgPhoto" fitWidth="116" fitHeight="130" preserveRatio="true" smooth="true"/>
+                            <Label fx:id="lblNoPhoto" text="No photo available" wrapText="true"
+                                   textAlignment="CENTER" style="-fx-text-fill: #64748b;"/>
+                        </StackPane>
+                    </VBox>
+                    <VBox fx:id="detailsContainer" spacing="12" HBox.hgrow="ALWAYS"/>
+                </HBox>
+            </content>
+        </ScrollPane>
+
+        <Label fx:id="lblStatus" text="Ready." style="-fx-text-fill: #334155; -fx-padding: 6 0 0 0;"/>
+    </VBox>
+
+    <HBox spacing="8" alignment="CENTER_RIGHT" styleClass="form-footer">
+        <padding><Insets top="10" bottom="10" left="20" right="20"/></padding>
+        <Button text="Clear" onAction="#onClear" styleClass="btn-secondary"/>
+        <Button text="Close" onAction="#onClose" styleClass="btn-secondary"/>
+    </HBox>
+</VBox>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sdms.controller.RosterController"
+      prefWidth="480" prefHeight="380" styleClass="form-root">
+
+    <HBox styleClass="form-header" alignment="CENTER_LEFT">
+        <padding><Insets top="14" bottom="14" left="20" right="20"/></padding>
+        <Label text="Print Delegation Roster" styleClass="form-title"/>
+    </HBox>
+
+    <VBox spacing="16" VBox.vgrow="ALWAYS" style="-fx-padding: 24 28 20 28;">
+        <VBox spacing="6">
+            <Label text="School / Division"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
+            <ComboBox fx:id="cmbSchool" maxWidth="Infinity"
+                      promptText="Select school or All Schools"/>
+        </VBox>
+        <VBox spacing="10">
+            <Label text="Include in roster:"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
+            <CheckBox fx:id="chkAthletes"  text="Athletes"  style="-fx-font-size: 13px;"/>
+            <CheckBox fx:id="chkOfficials" text="Officials" style="-fx-font-size: 13px;"/>
+            <CheckBox fx:id="chkCoaches"   text="Coaches"   style="-fx-font-size: 13px;"/>
+        </VBox>
+        <Separator/>
+        <Label text="Output: A4 PDF with a table per module, alternating row colors, page numbers."
+               style="-fx-font-size: 11px; -fx-text-fill: #64748B;" wrapText="true"/>
+        <ProgressBar fx:id="progressBar" maxWidth="Infinity"/>
+        <Label fx:id="lblStatus" wrapText="true" style="-fx-font-size: 12px; -fx-text-fill: #475569;"/>
+    </VBox>
+
+    <HBox spacing="8" alignment="CENTER_RIGHT" styleClass="form-footer">
+        <padding><Insets top="12" bottom="12" left="20" right="20"/></padding>
+        <Button text="Cancel"       onAction="#onClose"  styleClass="btn-secondary"/>
+        <Button fx:id="btnExport" text="Export PDF" onAction="#onExport"
+                styleClass="btn-primary" defaultButton="true"/>
+    </HBox>
+</VBox>

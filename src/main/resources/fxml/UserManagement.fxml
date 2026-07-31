@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sdms.controller.UserManagementController"
+      prefWidth="860" prefHeight="500" styleClass="form-root" spacing="0">
+
+    <HBox styleClass="form-header" alignment="CENTER_LEFT">
+        <padding><Insets top="14" bottom="14" left="20" right="20"/></padding>
+        <Label text="User Management" styleClass="form-title"/>
+    </HBox>
+
+    <SplitPane VBox.vgrow="ALWAYS" dividerPositions="0.55">
+
+        <!-- Left: user list -->
+        <VBox spacing="8" style="-fx-padding: 14 12 14 16;">
+            <HBox spacing="8">
+                <Button text="+ New User" onAction="#onNew" styleClass="btn-primary"/>
+                <Button fx:id="btnDelete" text="Delete" onAction="#onDelete" styleClass="btn-danger"/>
+            </HBox>
+            <TableView fx:id="userTable" VBox.vgrow="ALWAYS" styleClass="data-table">
+                <columns>
+                    <TableColumn fx:id="colUsername" text="Username"  prefWidth="120"/>
+                    <TableColumn fx:id="colFullName" text="Full Name" prefWidth="160"/>
+                    <TableColumn fx:id="colRole"     text="Role"      prefWidth="90"/>
+                    <TableColumn fx:id="colActive"   text="Status"    prefWidth="80"/>
+                </columns>
+            </TableView>
+        </VBox>
+
+        <!-- Right: edit form -->
+        <VBox spacing="12" style="-fx-padding: 14 16 14 12;">
+            <Label fx:id="lblFormTitle" text="New User"
+                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1A3A5C;"/>
+            <GridPane hgap="12" vgap="10">
+                <Label text="Username *"   GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtUsername" GridPane.rowIndex="0" GridPane.columnIndex="1" maxWidth="Infinity"/>
+                <Label text="Full Name *"  GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtFullName" GridPane.rowIndex="1" GridPane.columnIndex="1" maxWidth="Infinity"/>
+                <Label text="Role *"       GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <ComboBox fx:id="cmbRole"  GridPane.rowIndex="2" GridPane.columnIndex="1" maxWidth="Infinity"/>
+                <Label text="Password"     GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                <PasswordField fx:id="txtNewPassword" GridPane.rowIndex="3" GridPane.columnIndex="1" maxWidth="Infinity"
+                           promptText="Leave blank to keep current"/>
+                <Label text="Active"       GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                <CheckBox fx:id="chkActive" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                <columnConstraints>
+                    <ColumnConstraints minWidth="90" maxWidth="100"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+            </GridPane>
+            <Region VBox.vgrow="ALWAYS"/>
+            <Separator/>
+            <Label text="Roles:  ADMIN — full access including user management  |  ENCODER — add/edit, no delete  |  VIEWER — read-only + export"
+                   style="-fx-font-size: 10px; -fx-text-fill: #94A3B8;" wrapText="true"/>
+            <HBox spacing="8" alignment="CENTER_RIGHT">
+                <Button text="Close"     onAction="#onClose" styleClass="btn-secondary"/>
+                <Button fx:id="btnSave" text="Save User" onAction="#onSave" styleClass="btn-primary" defaultButton="true"/>
+            </HBox>
+        </VBox>
+
+    </SplitPane>
+</VBox>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.sdms.controller.CoachController">
+    <top>
+        <VBox styleClass="module-header">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <padding><Insets top="16" bottom="12" left="20" right="20"/></padding>
+                <Label text="Coaches" styleClass="module-title"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <TextField fx:id="searchField" promptText="Search by name, school, ID…"
+                           prefWidth="240" styleClass="search-field"/>
+                <ComboBox fx:id="schoolFilter" promptText="All Schools" prefWidth="190"
+                          onAction="#onSchoolFilter"/>
+            </HBox>
+            <HBox spacing="8" style="-fx-padding: 0 20 12 20;">
+                <Button text="+ Add Coach"       styleClass="btn-primary"   onAction="#onAdd"/>
+                <Button text="✏ Edit"            styleClass="btn-secondary" onAction="#onEdit"/>
+                <Button text="🗑 Delete"          styleClass="btn-danger"    onAction="#onDelete"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="🪪 Export ID Card"  styleClass="btn-secondary" onAction="#onExportIdCard"/>
+                <Button text="📄 Export Report"   styleClass="btn-secondary" onAction="#onExportReport"/>
+            </HBox>
+        </VBox>
+    </top>
+    <center>
+        <SplitPane dividerPositions="0.72">
+            <TableView fx:id="coachTable" styleClass="data-table">
+                <columns>
+                    <TableColumn fx:id="colCoachId"   text="Coach ID"   prefWidth="120"/>
+                    <TableColumn fx:id="colLastName"  text="Last Name"  prefWidth="150"/>
+                    <TableColumn fx:id="colFirstName" text="First Name" prefWidth="130"/>
+                    <TableColumn fx:id="colSex"       text="Sex"        prefWidth="60"/>
+                    <TableColumn fx:id="colPosition"  text="Position"   prefWidth="180"/>
+                    <TableColumn fx:id="colSchool"    text="School"     prefWidth="200"/>
+                </columns>
+                <placeholder><Label text="No coaches found." style="-fx-text-fill: #888;"/></placeholder>
+            </TableView>
+            <VBox styleClass="preview-panel" spacing="10">
+                <padding><Insets top="20" bottom="20" left="16" right="16"/></padding>
+                <Label text="Preview" styleClass="preview-title"/>
+                <ImageView fx:id="imgPreviewPhoto" fitWidth="100" fitHeight="100" preserveRatio="true"/>
+                <Label fx:id="lblPreviewName"     styleClass="preview-name"  text="—" wrapText="true"/>
+                <Label fx:id="lblPreviewId"       styleClass="preview-label" text=""/>
+                <Label fx:id="lblPreviewPosition" styleClass="preview-label" text="" wrapText="true"/>
+                <Label fx:id="lblPreviewSchool"   styleClass="preview-label" text="" wrapText="true"/>
+                <Separator/>
+                <Label text="QR Code" styleClass="preview-section-label"/>
+                <ImageView fx:id="imgPreviewQR" fitWidth="120" fitHeight="120" preserveRatio="true"/>
+            </VBox>
+        </SplitPane>
+    </center>
+</BorderPane>

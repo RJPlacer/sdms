@@ -1,0 +1,27 @@
+# Maven output
+target/
+dependency-reduced-pom.xml
+
+# Packaged applications
+dist/
+dist-debug/
+dist-debug2/
+
+# Databases and test data
+*.db
+*.db-shm
+*.db-wal
+data/
+manual-test-data/
+
+# Generated exports and temporary files
+exports/
+tmp/
+*.pdf
+
+# Editor and OS files
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db

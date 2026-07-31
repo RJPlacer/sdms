@@ -1,0 +1,290 @@
+/* ── Root ────────────────────────────────────────────────────────────────── */
+.root {
+    -fx-background-color: #F5F6FA;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-size: 13px;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+.sidebar {
+    -fx-background-color: #1A3A5C;
+}
+.sidebar-header {
+    -fx-background-color: #122B45;
+}
+.sidebar-title {
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+.sidebar-subtitle {
+    -fx-text-fill: #90B4D4;
+    -fx-font-size: 10px;
+    -fx-text-alignment: center;
+}
+.sidebar-footer {
+    -fx-text-fill: #5C8AB0;
+    -fx-font-size: 10px;
+}
+
+/* ── Nav buttons ─────────────────────────────────────────────────────────── */
+.nav-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #C5D9EC;
+    -fx-font-size: 13px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 10 16 10 16;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+.nav-btn:hover {
+    -fx-background-color: #24507A;
+}
+.nav-btn-active {
+    -fx-background-color: #1E6FA8 !important;
+    -fx-text-fill: #FFFFFF !important;
+    -fx-font-weight: bold;
+}
+
+/* ── Content area ────────────────────────────────────────────────────────── */
+.content-area {
+    -fx-background-color: #F5F6FA;
+}
+
+/* ── Module header ───────────────────────────────────────────────────────── */
+.module-header {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E0E4EA;
+    -fx-border-width: 0 0 1 0;
+}
+.module-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1A3A5C;
+}
+
+/* ── Search field ────────────────────────────────────────────────────────── */
+.search-field {
+    -fx-background-color: #F0F2F5;
+    -fx-border-color: #D0D5DE;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 6 12 6 12;
+}
+.search-field:focused {
+    -fx-border-color: #1E6FA8;
+    -fx-background-color: #FFFFFF;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn-primary {
+    -fx-background-color: #1E6FA8;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 7 18 7 18;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+.btn-primary:hover { -fx-background-color: #1558882; }
+
+.btn-secondary {
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: #334155;
+    -fx-border-color: #CBD5E1;
+    -fx-border-width: 1;
+    -fx-padding: 6 14 6 14;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-cursor: hand;
+}
+.btn-secondary:hover { -fx-background-color: #F1F5F9; }
+
+.btn-danger {
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: #DC2626;
+    -fx-border-color: #FCA5A5;
+    -fx-border-width: 1;
+    -fx-padding: 6 14 6 14;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-cursor: hand;
+}
+.btn-danger:hover { -fx-background-color: #FEF2F2; }
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+.data-table {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E0E4EA;
+}
+.data-table .table-row-cell {
+    -fx-border-color: transparent transparent #F0F2F5 transparent;
+}
+.data-table .table-row-cell:selected {
+    -fx-background-color: #E8F0FB;
+    -fx-text-fill: #1A3A5C;
+}
+.data-table .column-header {
+    -fx-background-color: #F8FAFB;
+    -fx-font-weight: bold;
+    -fx-text-fill: #475569;
+    -fx-border-color: transparent transparent #E0E4EA transparent;
+}
+
+/* ── Preview panel ───────────────────────────────────────────────────────── */
+.preview-panel {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E0E4EA;
+    -fx-border-width: 0 0 0 1;
+}
+.preview-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #94A3B8;
+    -fx-text-transform: uppercase;
+}
+.preview-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1A3A5C;
+}
+.preview-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748B;
+}
+.preview-section-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #94A3B8;
+}
+
+/* ── Form ────────────────────────────────────────────────────────────────── */
+.form-root {
+    -fx-background-color: #FFFFFF;
+}
+.form-header {
+    -fx-background-color: #1A3A5C;
+}
+.form-title {
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+.id-badge {
+    -fx-background-color: #E8F0FB;
+    -fx-text-fill: #1E6FA8;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 10 4 10;
+    -fx-background-radius: 20;
+}
+.form-tabs .tab-header-area .tab {
+    -fx-font-size: 12px;
+}
+.form-footer {
+    -fx-background-color: #F8FAFB;
+    -fx-border-color: #E0E4EA;
+    -fx-border-width: 1 0 0 0;
+}
+.hint-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #94A3B8;
+}
+
+/* ── Dashboard stat cards ─────────────────────────────────────────────────── */
+.stat-card {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E0E4EA;
+    -fx-border-width: 1;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, #0001, 4, 0, 0, 2);
+}
+
+/* ── App footer ──────────────────────────────────────────────────────────── */
+.app-footer {
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: #DCE4EE;
+    -fx-border-width: 1 0 0 0;
+}
+.app-footer:hover {
+    -fx-background-color: #F1F5F9;
+}
+.app-footer-text {
+    -fx-text-fill: #1E293B;
+    -fx-font-size: 12px;
+}
+.app-footer-link {
+    -fx-text-fill: #1D4ED8;
+    -fx-font-size: 12px;
+}
+.app-footer-hint {
+    -fx-text-fill: #64748B;
+    -fx-font-size: 11px;
+}
+
+/* ── Team dialog ─────────────────────────────────────────────────────────── */
+.team-dialog-root {
+    -fx-background-color: #E5E7EB;
+}
+.team-brand {
+    -fx-font-size: 34px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1F2937;
+}
+.team-title {
+    -fx-font-size: 56px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #374151;
+}
+.team-subtitle {
+    -fx-font-size: 28px;
+    -fx-text-fill: #64748B;
+}
+.team-card {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #D1D5DB;
+    -fx-border-width: 1;
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+    -fx-min-width: 235;
+    -fx-max-width: 235;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.15), 8, 0, 0, 2);
+}
+.team-photo {
+    -fx-background-radius: 99;
+    -fx-border-color: #E5E7EB;
+    -fx-border-width: 1;
+    -fx-border-radius: 99;
+}
+.team-photo-placeholder {
+    -fx-background-color: #F3F4F6;
+    -fx-border-color: #D1D5DB;
+    -fx-border-width: 1;
+    -fx-border-radius: 99;
+    -fx-background-radius: 99;
+}
+.team-placeholder-text {
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 11px;
+    -fx-font-style: italic;
+}
+.team-name {
+    -fx-text-fill: #1F2937;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+.team-role {
+    -fx-text-fill: #334155;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+.team-note {
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 12px;
+    -fx-font-style: italic;
+}
+.team-link {
+    -fx-text-fill: #1D4ED8;
+    -fx-font-size: 12px;
+}

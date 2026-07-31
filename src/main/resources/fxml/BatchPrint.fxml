@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sdms.controller.BatchPrintController"
+      prefWidth="500" prefHeight="380" styleClass="form-root" spacing="0">
+
+    <HBox styleClass="form-header" alignment="CENTER_LEFT">
+        <padding><Insets top="14" bottom="14" left="20" right="20"/></padding>
+        <Label text="Batch ID Card Export" styleClass="form-title"/>
+    </HBox>
+
+    <VBox spacing="20" style="-fx-padding: 28 30 24 30;" VBox.vgrow="ALWAYS">
+        <Label text="Select modules to include in the batch export:"
+               style="-fx-font-size: 13px; -fx-text-fill: #334155;"/>
+
+        <VBox spacing="14">
+            <CheckBox fx:id="chkAthletes"  text="Athletes"  style="-fx-font-size: 13px;"/>
+            <CheckBox fx:id="chkOfficials" text="Officials" style="-fx-font-size: 13px;"/>
+            <CheckBox fx:id="chkCoaches"   text="Coaches"   style="-fx-font-size: 13px;"/>
+        </VBox>
+
+        <Separator/>
+
+        <VBox spacing="8">
+            <Label text="Output format: 2 ID cards per row × 4 rows per A4 page (8 cards/page)"
+                   style="-fx-font-size: 11px; -fx-text-fill: #64748B;" wrapText="true"/>
+            <Label text="Each card includes: photo, name, ID, school, position, QR code"
+                   style="-fx-font-size: 11px; -fx-text-fill: #64748B;"/>
+        </VBox>
+
+        <ProgressBar fx:id="progressBar" maxWidth="Infinity"/>
+        <Label fx:id="lblStatus" wrapText="true" style="-fx-font-size: 12px; -fx-text-fill: #475569;"/>
+    </VBox>
+
+    <HBox spacing="8" alignment="CENTER_RIGHT" styleClass="form-footer">
+        <padding><Insets top="12" bottom="12" left="20" right="20"/></padding>
+        <Button text="Cancel" onAction="#onClose" styleClass="btn-secondary"/>
+        <Button fx:id="btnExport" text="Export PDF" onAction="#onExport"
+                styleClass="btn-primary" defaultButton="true"/>
+    </HBox>
+</VBox>

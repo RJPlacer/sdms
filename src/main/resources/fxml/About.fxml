@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sdms.controller.AboutController"
+      prefWidth="460" prefHeight="400" styleClass="form-root">
+
+    <!-- Header -->
+    <VBox style="-fx-background-color: #1A3A5C; -fx-padding: 28 24 24 24;" alignment="CENTER" spacing="6">
+        <Label text="Athlete Track"
+               style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+        <Label text="Palarong Pambansa Delegation Management"
+               style="-fx-font-size: 11px; -fx-text-fill: #90B4D4;"/>
+       <Label fx:id="lblVersion" text="Version"
+               style="-fx-font-size: 10px; -fx-text-fill: #5C8AB0;"/>
+    </VBox>
+
+    <VBox spacing="0" VBox.vgrow="ALWAYS" style="-fx-padding: 20 28 16 28;">
+
+        <!-- Stats -->
+        <Label text="DATABASE SUMMARY"
+               style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #94A3B8; -fx-padding: 0 0 8 0;"/>
+        <GridPane hgap="16" vgap="10">
+            <Label text="Athletes:"    GridPane.rowIndex="0" GridPane.columnIndex="0" style="-fx-text-fill: #475569;"/>
+            <Label fx:id="lblAthleteCount"   text="—" GridPane.rowIndex="0" GridPane.columnIndex="1"
+                   style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1E6FA8;"/>
+            <Label text="Officials:"  GridPane.rowIndex="1" GridPane.columnIndex="0" style="-fx-text-fill: #475569;"/>
+            <Label fx:id="lblOfficialCount"  text="—" GridPane.rowIndex="1" GridPane.columnIndex="1"
+                   style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0F6E56;"/>
+            <Label text="Coaches:"    GridPane.rowIndex="2" GridPane.columnIndex="0" style="-fx-text-fill: #475569;"/>
+            <Label fx:id="lblCoachCount"     text="—" GridPane.rowIndex="2" GridPane.columnIndex="1"
+                   style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #854F0B;"/>
+            <Label text="Equipment Records:" GridPane.rowIndex="3" GridPane.columnIndex="0" style="-fx-text-fill: #475569;"/>
+            <Label fx:id="lblEquipmentCount" text="—" GridPane.rowIndex="3" GridPane.columnIndex="1"
+                   style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #993556;"/>
+            <Label text="User Accounts:" GridPane.rowIndex="4" GridPane.columnIndex="0" style="-fx-text-fill: #475569;"/>
+            <Label fx:id="lblUserCount"  text="—" GridPane.rowIndex="4" GridPane.columnIndex="1"
+                   style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #475569;"/>
+            <columnConstraints>
+                <ColumnConstraints minWidth="140"/>
+                <ColumnConstraints/>
+            </columnConstraints>
+        </GridPane>
+
+        <Separator style="-fx-padding: 14 0 14 0;"/>
+
+        <Label text="CURRENT SESSION"
+               style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #94A3B8; -fx-padding: 8 0 8 0;"/>
+        <HBox spacing="10">
+            <Label text="Logged in as:" style="-fx-text-fill: #475569;"/>
+            <Label fx:id="lblLoggedInUser" text="—" style="-fx-font-weight: bold; -fx-text-fill: #1A3A5C;"/>
+            <Label fx:id="lblRole" text="" style="-fx-text-fill: #64748B; -fx-font-size: 11px;"/>
+        </HBox>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <Label text="Built with JavaFX 21 · SQLite · ZXing · OpenPDF"
+               style="-fx-font-size: 10px; -fx-text-fill: #94A3B8;"/>
+    </VBox>
+
+    <HBox alignment="CENTER_RIGHT" styleClass="form-footer">
+        <padding><Insets top="12" bottom="12" left="20" right="20"/></padding>
+        <Button text="Close" onAction="#onClose" styleClass="btn-secondary"/>
+    </HBox>
+</VBox>

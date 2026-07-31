@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sdms.controller.EquipmentFormController"
+      prefWidth="800" prefHeight="580" styleClass="form-root">
+
+    <HBox styleClass="form-header" alignment="CENTER_LEFT" spacing="12">
+        <padding><Insets top="14" bottom="14" left="20" right="20"/></padding>
+        <Label text="Equipment Borrowing Record" styleClass="form-title"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblGeneratedId" styleClass="id-badge"/>
+    </HBox>
+
+    <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE" styleClass="form-tabs">
+
+        <!-- Borrower Info + Insurance -->
+        <Tab text="Borrower Information">
+            <GridPane hgap="12" vgap="10" style="-fx-padding: 16 20 16 20;">
+                <Label text="Borrower Name *"     GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtBorrowerName" GridPane.rowIndex="0" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
+                <Label text="Designation"         GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtDesignation"  GridPane.rowIndex="1" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
+                <Label text="School"              GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtSchool"       GridPane.rowIndex="2" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
+                <Label text="Event"               GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtEvent"        GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                <Label text="Mobile No."          GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+                <TextField fx:id="txtMobileNo"     GridPane.rowIndex="3" GridPane.columnIndex="3" maxWidth="Infinity"/>
+                <Label text="Date"                GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                <DatePicker fx:id="dpDate"         GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                <Separator GridPane.rowIndex="5" GridPane.columnIndex="0" GridPane.columnSpan="4"/>
+                <Label text="Insurance — Issued By" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtIssuedBy"     GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                <Label text="Issued To"           GridPane.rowIndex="6" GridPane.columnIndex="2"/>
+                <TextField fx:id="txtIssuedTo"     GridPane.rowIndex="6" GridPane.columnIndex="3" maxWidth="Infinity"/>
+                <columnConstraints>
+                    <ColumnConstraints minWidth="140" maxWidth="160"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                    <ColumnConstraints minWidth="100" maxWidth="120"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+            </GridPane>
+        </Tab>
+
+        <!-- Equipment Items -->
+        <Tab text="Equipment Items">
+            <VBox spacing="8" style="-fx-padding: 12 16 12 16;">
+                <Label text="Equipment Items" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+                <GridPane hgap="10" vgap="8">
+                    <Label text="QTY"               GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtQty"        GridPane.rowIndex="0" GridPane.columnIndex="1" prefWidth="60"/>
+                    <Label text="Unit"              GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+                    <TextField fx:id="txtUnit"       GridPane.rowIndex="0" GridPane.columnIndex="3" maxWidth="Infinity"/>
+                    <Label text="Make &amp; Description" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtDesc"       GridPane.rowIndex="1" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
+                    <Label text="Date Borrowed"     GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <DatePicker fx:id="dpDateBorrowed" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    <Label text="Date Returned"     GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+                    <DatePicker fx:id="dpDateReturned" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+                    <Label text="Remarks"           GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtRemarks"    GridPane.rowIndex="3" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="140"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                        <ColumnConstraints minWidth="110"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+                </GridPane>
+                <HBox spacing="8">
+                    <Button text="+ Add Item"       onAction="#onAddItem"    styleClass="btn-primary"/>
+                    <Button text="Remove Selected"  onAction="#onRemoveItem" styleClass="btn-danger"/>
+                </HBox>
+                <TableView fx:id="tblItems" VBox.vgrow="ALWAYS" prefHeight="220">
+                    <columns>
+                        <TableColumn fx:id="colQty"          text="QTY"           prefWidth="60"/>
+                        <TableColumn fx:id="colUnit"         text="Unit"          prefWidth="80"/>
+                        <TableColumn fx:id="colDesc"         text="Make &amp; Description" prefWidth="220"/>
+                        <TableColumn fx:id="colDateBorrowed" text="Date Borrowed" prefWidth="110"/>
+                        <TableColumn fx:id="colDateReturned" text="Date Returned" prefWidth="110"/>
+                        <TableColumn fx:id="colRemarks"      text="Remarks"       prefWidth="120"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </Tab>
+
+    </TabPane>
+
+    <HBox spacing="8" alignment="CENTER_RIGHT" styleClass="form-footer">
+        <padding><Insets top="12" bottom="12" left="20" right="20"/></padding>
+        <Button text="Cancel" onAction="#onCancel" styleClass="btn-secondary"/>
+        <Button text="Save Record" onAction="#onSave" styleClass="btn-primary" defaultButton="true"/>
+    </HBox>
+</VBox>

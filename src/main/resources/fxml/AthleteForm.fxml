@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sdms.controller.AthleteFormController"
+      prefWidth="720" prefHeight="580" styleClass="form-root">
+
+    <HBox styleClass="form-header" alignment="CENTER_LEFT" spacing="12">
+        <padding><Insets top="14" bottom="14" left="20" right="20"/></padding>
+        <Label text="Athlete Record" styleClass="form-title"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblGeneratedId" styleClass="id-badge"/>
+    </HBox>
+
+    <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE" styleClass="form-tabs">
+
+        <!-- A. Personal Data -->
+        <Tab text="A. Personal Data">
+            <ScrollPane fitToWidth="true">
+                <GridPane hgap="12" vgap="10" style="-fx-padding: 16 20 16 20;">
+                    <Label text="Last Name *"          GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtLastName"      GridPane.rowIndex="0" GridPane.columnIndex="1" GridPane.columnSpan="2" maxWidth="Infinity"/>
+                    <Label text="First Name *"          GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtFirstName"     GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    <Label text="M.I."                  GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+                    <TextField fx:id="txtMiddleInitial" GridPane.rowIndex="1" GridPane.columnIndex="3" prefWidth="60" maxWidth="60"/>
+                    <Label text="Sex *"                 GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <ComboBox fx:id="cmbSex"            GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    <Label text="LRN"                   GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtLRN"           GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                    <Label text="Contact No."           GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtContactNo"     GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                    <Label text="Date of Birth"         GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                    <DatePicker fx:id="dpDateOfBirth"   GridPane.rowIndex="5" GridPane.columnIndex="1" promptText="MM/DD/YYYY"/>
+                    <Label text="Age"                   GridPane.rowIndex="5" GridPane.columnIndex="2"/>
+                    <TextField fx:id="txtAge"           GridPane.rowIndex="5" GridPane.columnIndex="3" prefWidth="60" maxWidth="60" editable="false"/>
+                    <Label text="Place of Birth"        GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtPlaceOfBirth"  GridPane.rowIndex="6" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
+                    <Label text="School"                GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtSchool"        GridPane.rowIndex="7" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
+                    <Label text="Address of School"     GridPane.rowIndex="8" GridPane.columnIndex="0"/>
+                    <TextArea  fx:id="txaSchoolAddress" GridPane.rowIndex="8" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity" prefRowCount="2"/>
+                    <Label text="Present Address"       GridPane.rowIndex="9" GridPane.columnIndex="0"/>
+                    <TextArea  fx:id="txaPresentAddress" GridPane.rowIndex="9" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity" prefRowCount="2"/>
+                    <Label text="Photo (1x1)"           GridPane.rowIndex="10" GridPane.columnIndex="0"/>
+                    <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="10" GridPane.columnIndex="1" GridPane.columnSpan="3">
+                        <ImageView fx:id="imgPhoto" fitWidth="80" fitHeight="80" preserveRatio="true"/>
+                        <VBox spacing="4">
+                            <Button text="Choose Photo…" onAction="#onChoosePhoto" styleClass="btn-secondary"/>
+                            <Label fx:id="lblPhotoPath" text="No photo selected" styleClass="hint-label"/>
+                        </VBox>
+                    </HBox>
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="130" maxWidth="140"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                        <ColumnConstraints minWidth="50" maxWidth="80"/>
+                        <ColumnConstraints minWidth="70" maxWidth="100"/>
+                    </columnConstraints>
+                </GridPane>
+            </ScrollPane>
+        </Tab>
+
+        <!-- Guardian Information -->
+        <Tab text="Guardian Information">
+            <GridPane hgap="12" vgap="10" style="-fx-padding: 16 20 16 20;">
+                <Label text="Mother's Name"        GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtMotherName"   GridPane.rowIndex="0" GridPane.columnIndex="1" maxWidth="Infinity"/>
+                <Label text="Father's Name"        GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtFatherName"   GridPane.rowIndex="1" GridPane.columnIndex="1" maxWidth="Infinity"/>
+                <Label text="Guardian Address"     GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <TextArea fx:id="txaGuardianAddress" GridPane.rowIndex="2" GridPane.columnIndex="1" maxWidth="Infinity" prefRowCount="3"/>
+                <columnConstraints>
+                    <ColumnConstraints minWidth="130" maxWidth="140"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+            </GridPane>
+        </Tab>
+
+        <!-- B. Previous Palarong Pambansa -->
+        <Tab text="B. Previous Palaro">
+            <VBox spacing="8" style="-fx-padding: 12 16 12 16;">
+                <Label text="Previous Palarong Pambansa Participation"
+                       style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+                <GridPane hgap="10" vgap="8">
+                    <Label text="Year"                  GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtPalaroYear"    GridPane.rowIndex="0" GridPane.columnIndex="1" promptText="e.g. 2024"/>
+                    <Label text="Sports Event"          GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+                    <TextField fx:id="txtPalaroEvent"   GridPane.rowIndex="0" GridPane.columnIndex="3" maxWidth="Infinity"/>
+                    <Label text="Venue"                 GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtPalaroVenue"   GridPane.rowIndex="1" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
+                    <Label text="Remarks"               GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtPalaroRemarks" GridPane.rowIndex="2" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="100"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                        <ColumnConstraints minWidth="100"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+                </GridPane>
+                <HBox spacing="8">
+                    <Button text="+ Add Row"       onAction="#onAddPalaro"    styleClass="btn-primary"/>
+                    <Button text="Remove Selected" onAction="#onRemovePalaro" styleClass="btn-danger"/>
+                </HBox>
+                <TableView fx:id="tblPalaro" VBox.vgrow="ALWAYS" prefHeight="220">
+                    <columns>
+                        <TableColumn fx:id="colPalaroYear"    text="Year"         prefWidth="80"/>
+                        <TableColumn fx:id="colPalaroEvent"   text="Sports Event" prefWidth="200"/>
+                        <TableColumn fx:id="colPalaroVenue"   text="Venue"        prefWidth="180"/>
+                        <TableColumn fx:id="colPalaroRemarks" text="Remarks"      prefWidth="160"/>
+                    </columns>
+                    <placeholder><Label text="No records yet. Add one above." style="-fx-text-fill: #888;"/></placeholder>
+                </TableView>
+            </VBox>
+        </Tab>
+
+        <!-- C. Lower Meets -->
+        <Tab text="C. Lower Meets">
+            <VBox spacing="8" style="-fx-padding: 12 16 12 16;">
+                <Label text="Athlete's Participation in Lower Meets (Current School Year)"
+                       style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+                <GridPane hgap="10" vgap="8">
+                    <Label text="Inclusive Dates"      GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtMeetDates"    GridPane.rowIndex="0" GridPane.columnIndex="1" promptText="e.g. Jan 10-12, 2026"/>
+                    <Label text="Sports Event"         GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+                    <TextField fx:id="txtMeetEvent"    GridPane.rowIndex="0" GridPane.columnIndex="3" maxWidth="Infinity"/>
+                    <Label text="Athletic Meet"        GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtMeetName"     GridPane.rowIndex="1" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
+                    <Label text="Remarks"              GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtMeetRemarks"  GridPane.rowIndex="2" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="110"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                        <ColumnConstraints minWidth="100"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+                </GridPane>
+                <HBox spacing="8">
+                    <Button text="+ Add Row"       onAction="#onAddMeet"    styleClass="btn-primary"/>
+                    <Button text="Remove Selected" onAction="#onRemoveMeet" styleClass="btn-danger"/>
+                </HBox>
+                <TableView fx:id="tblMeets" VBox.vgrow="ALWAYS" prefHeight="220">
+                    <columns>
+                        <TableColumn fx:id="colMeetDates"   text="Inclusive Dates" prefWidth="150"/>
+                        <TableColumn fx:id="colMeetEvent"   text="Sports Event"    prefWidth="180"/>
+                        <TableColumn fx:id="colMeetName"    text="Athletic Meet"   prefWidth="180"/>
+                        <TableColumn fx:id="colMeetRemarks" text="Remarks"         prefWidth="140"/>
+                    </columns>
+                    <placeholder><Label text="No records yet. Add one above." style="-fx-text-fill: #888;"/></placeholder>
+                </TableView>
+            </VBox>
+        </Tab>
+
+        <!-- D. Certification -->
+        <Tab text="D. Certification">
+            <GridPane hgap="12" vgap="10" style="-fx-padding: 16 20 16 20;">
+                <Label text="Meet"             GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtCertMeet"  GridPane.rowIndex="0" GridPane.columnIndex="1" maxWidth="Infinity"/>
+                <Label text="Coach Name"       GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtCertCoach" GridPane.rowIndex="1" GridPane.columnIndex="1" maxWidth="Infinity"/>
+                <Label text="DSO Name"         GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtCertDso"   GridPane.rowIndex="2" GridPane.columnIndex="1" maxWidth="Infinity"/>
+                <Label text="RSO Name"         GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                <TextField fx:id="txtCertRso"   GridPane.rowIndex="3" GridPane.columnIndex="1" maxWidth="Infinity"/>
+                <Label text="(Signatures are printed on the exported PDF report.)"
+                       GridPane.rowIndex="4" GridPane.columnIndex="0" GridPane.columnSpan="2"
+                       style="-fx-text-fill: #888; -fx-font-size: 11px; -fx-padding: 8 0 0 0;"/>
+                <columnConstraints>
+                    <ColumnConstraints minWidth="110" maxWidth="130"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+            </GridPane>
+        </Tab>
+
+    </TabPane>
+
+    <HBox spacing="8" alignment="CENTER_RIGHT" styleClass="form-footer">
+        <padding><Insets top="12" bottom="12" left="20" right="20"/></padding>
+        <Button text="Cancel" onAction="#onCancel" styleClass="btn-secondary"/>
+        <Button text="Save Athlete" onAction="#onSave" styleClass="btn-primary" defaultButton="true"/>
+    </HBox>
+
+</VBox>

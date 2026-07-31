@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+                     xmlns:fx="http://javafx.com/fxml/1"
+                     fx:controller="com.sdms.controller.LoginController"
+                     style="-fx-background-color: #1A3A5C;">
+
+       <center>
+       <StackPane>
+
+               <VBox alignment="CENTER" spacing="16" maxWidth="340" maxHeight="-Infinity"
+          style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 40 36 36 36;">
+
+        <Label text="Athlete Track"
+               style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #1A3A5C;"/>
+        <Label text="Palarong Pambansa Delegation System" maxWidth="Infinity" alignment="CENTER"
+               style="-fx-font-size: 11px; -fx-text-fill: #64748B; -fx-text-alignment: center;"
+               wrapText="true"/>
+        <Label text="Palarong Pambansa" maxWidth="Infinity" alignment="CENTER"
+               style="-fx-font-size: 10px; -fx-text-fill: #94A3B8;"/>
+
+        <Separator/>
+
+        <VBox spacing="10" maxWidth="280">
+            <Label text="Username"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
+            <TextField fx:id="txtUsername" promptText="Enter username"
+                       style="-fx-font-size: 13px; -fx-padding: 8 12 8 12; -fx-border-color: #CBD5E1; -fx-border-radius: 6; -fx-background-radius: 6;"/>
+
+            <Label text="Password"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
+            <PasswordField fx:id="txtPassword" promptText="Enter password"
+                           style="-fx-font-size: 13px; -fx-padding: 8 12 8 12; -fx-border-color: #CBD5E1; -fx-border-radius: 6; -fx-background-radius: 6;"/>
+
+            <Label fx:id="lblError" text="" wrapText="true" maxWidth="280"
+                   style="-fx-text-fill: #DC2626; -fx-font-size: 11px;"/>
+
+            <Button fx:id="btnLogin" text="Log In" maxWidth="Infinity"
+                    onAction="#onLogin" defaultButton="true"
+                    style="-fx-background-color: #1E6FA8; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;"/>
+        </VBox>
+
+        <Label text="Default: admin / admin123"
+               style="-fx-font-size: 10px; -fx-text-fill: #94A3B8;"/>
+        <Label fx:id="lblVersion" text="Version"
+               style="-fx-font-size: 10px; -fx-text-fill: #94A3B8;"/>
+    </VBox>
+       </StackPane>
+       </center>
+
+       <bottom>
+              <HBox styleClass="app-footer" alignment="CENTER_LEFT" spacing="12" onMouseClicked="#onFooterClick">
+                     <padding><Insets top="8" bottom="8" left="14" right="14"/></padding>
+                     <ImageView fitWidth="34" fitHeight="34" preserveRatio="true">
+                            <image><Image url="@../images/SDO-Seal.png"/></image>
+                     </ImageView>
+                     <Label text="© 2026 SDMS | Developed by AlfaDevs." styleClass="app-footer-text"/>
+                     <Hyperlink text="DepTrack Site" onAction="#onOpenDepTrack" styleClass="app-footer-link"/>
+                     <Region HBox.hgrow="ALWAYS"/>
+                     <Label text="Click footer to view team" styleClass="app-footer-hint"/>
+              </HBox>
+       </bottom>
+
+</BorderPane>

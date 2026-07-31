@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sdms.controller.GlobalSearchController"
+      prefWidth="800" prefHeight="500" styleClass="form-root" spacing="0">
+
+    <HBox styleClass="form-header" alignment="CENTER_LEFT" spacing="12">
+        <padding><Insets top="14" bottom="14" left="20" right="20"/></padding>
+        <Label text="Global Search" styleClass="form-title"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblCount" style="-fx-text-fill: #90B4D4; -fx-font-size: 12px;"/>
+    </HBox>
+
+    <HBox style="-fx-padding: 14 16 10 16; -fx-background-color: #F8FAFB; -fx-border-color: #E0E4EA; -fx-border-width: 0 0 1 0;" spacing="10" alignment="CENTER_LEFT">
+        <TextField fx:id="txtSearch" promptText="Type at least 2 characters to search across all modules…"
+                   HBox.hgrow="ALWAYS" styleClass="search-field" style="-fx-font-size: 14px; -fx-padding: 8 12 8 12;"/>
+    </HBox>
+
+    <!-- Color legend -->
+    <HBox spacing="16" style="-fx-padding: 8 16 6 16;" alignment="CENTER_LEFT">
+        <Label text="■" style="-fx-text-fill: #1E6FA8; -fx-font-size: 10px;"/>
+        <Label text="Athlete" style="-fx-font-size: 10px; -fx-text-fill: #64748B;"/>
+        <Label text="■" style="-fx-text-fill: #0F6E56; -fx-font-size: 10px;"/>
+        <Label text="Official" style="-fx-font-size: 10px; -fx-text-fill: #64748B;"/>
+        <Label text="■" style="-fx-text-fill: #854F0B; -fx-font-size: 10px;"/>
+        <Label text="Coach" style="-fx-font-size: 10px; -fx-text-fill: #64748B;"/>
+        <Label text="■" style="-fx-text-fill: #993556; -fx-font-size: 10px;"/>
+        <Label text="Equipment" style="-fx-font-size: 10px; -fx-text-fill: #64748B;"/>
+    </HBox>
+
+    <TableView fx:id="resultsTable" VBox.vgrow="ALWAYS" styleClass="data-table">
+        <columns>
+            <TableColumn fx:id="colModule" text="Module"  prefWidth="100"/>
+            <TableColumn fx:id="colId"     text="ID"      prefWidth="130"/>
+            <TableColumn fx:id="colName"   text="Name"    prefWidth="220"/>
+            <TableColumn fx:id="colDetail" text="Details" prefWidth="300"/>
+        </columns>
+        <placeholder><Label text="Start typing to search…" style="-fx-text-fill: #94A3B8;"/></placeholder>
+    </TableView>
+
+    <HBox alignment="CENTER_RIGHT" style="-fx-padding: 10 16 10 16; -fx-background-color: #F8FAFB; -fx-border-color: #E0E4EA; -fx-border-width: 1 0 0 0;">
+        <Button text="Close" onAction="#onClose" styleClass="btn-secondary"/>
+    </HBox>
+</VBox>

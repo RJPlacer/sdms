@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.sdms.controller.MainController"
+            stylesheets="@../css/style.css">
+    <left>
+        <VBox styleClass="sidebar" prefWidth="220">
+            <padding><Insets top="0" bottom="16" left="0" right="0"/></padding>
+
+            <!-- Branding -->
+            <VBox styleClass="sidebar-header" alignment="CENTER">
+                <padding><Insets top="20" bottom="20" left="16" right="16"/></padding>
+                <Label text="Athlete Track" styleClass="sidebar-title"/>
+                <Label text="Palarong Pambansa" styleClass="sidebar-subtitle" wrapText="true"/>
+            </VBox>
+
+            <!-- Primary navigation -->
+            <VBox spacing="4" style="-fx-padding: 16 8 0 8;">
+                <Button fx:id="btnDashboard" text="🏠  Dashboard"  maxWidth="Infinity" styleClass="nav-btn" onAction="#onNavDashboard"/>
+                <Button fx:id="btnAthletes"  text="⚡  Athletes"   maxWidth="Infinity" styleClass="nav-btn" onAction="#onNavAthletes"/>
+                <Button fx:id="btnOfficials" text="🏅  Officials"  maxWidth="Infinity" styleClass="nav-btn" onAction="#onNavOfficials"/>
+                <Button fx:id="btnCoaches"   text="📋  Coaches"    maxWidth="Infinity" styleClass="nav-btn" onAction="#onNavCoaches"/>
+                <Button fx:id="btnEquipment" text="🔧  Equipment"  maxWidth="Infinity" styleClass="nav-btn" onAction="#onNavEquipment"/>
+            </VBox>
+
+            <Region VBox.vgrow="ALWAYS"/>
+
+            <!-- Tools -->
+            <VBox spacing="4" style="-fx-padding: 0 8 0 8;">
+                <Label text="TOOLS" style="-fx-font-size: 9px; -fx-text-fill: #3D6A94; -fx-padding: 4 8 2 8; -fx-font-weight: bold;"/>
+                <Button fx:id="btnUsers"   text="👥  Users"          maxWidth="Infinity" styleClass="nav-btn" onAction="#onUserManagement"/>
+                <Button text="🔍  Global Search"  maxWidth="Infinity" styleClass="nav-btn" onAction="#onGlobalSearch"/>
+                <Button text="📷  Scan QR"        maxWidth="Infinity" styleClass="nav-btn" onAction="#onScanQr"/>
+                <Button text="🖨  Batch ID Cards" maxWidth="Infinity" styleClass="nav-btn" onAction="#onBatchPrint"/>
+                <Button text="📋  Print Roster"   maxWidth="Infinity" styleClass="nav-btn" onAction="#onRoster"/>
+            </VBox>
+
+            <Separator style="-fx-padding: 8 16 4 16; -fx-opacity: 0.3;"/>
+
+            <!-- User info -->
+            <VBox style="-fx-padding: 6 16 4 16;" spacing="2">
+                <Label fx:id="lblCurrentUser" text="User"
+                       style="-fx-text-fill: #C5D9EC; -fx-font-size: 12px; -fx-font-weight: bold;"/>
+                <Label fx:id="lblUserRole" text="Role"
+                       style="-fx-text-fill: #5C8AB0; -fx-font-size: 10px;"/>
+                <HBox spacing="4">
+                    <Button text="🔑 Password" onAction="#onChangePassword"
+                            style="-fx-background-color: transparent; -fx-text-fill: #5C8AB0; -fx-font-size: 10px; -fx-cursor: hand; -fx-padding: 2 4 2 0;"/>
+                    <Button text="ℹ About" onAction="#onAbout"
+                            style="-fx-background-color: transparent; -fx-text-fill: #5C8AB0; -fx-font-size: 10px; -fx-cursor: hand; -fx-padding: 2 4 2 0;"/>
+                </HBox>
+                <Button text="↩  Log Out" maxWidth="Infinity" onAction="#onLogout"
+                        style="-fx-background-color: transparent; -fx-text-fill: #F87171; -fx-font-size: 11px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT; -fx-padding: 4 8 4 0;"/>
+            </VBox>
+        </VBox>
+    </left>
+
+    <center>
+        <StackPane fx:id="contentArea" styleClass="content-area"/>
+    </center>
+
+    <bottom>
+        <HBox styleClass="app-footer" alignment="CENTER_LEFT" spacing="12" onMouseClicked="#onFooterClick">
+            <padding><Insets top="8" bottom="8" left="14" right="14"/></padding>
+            <ImageView fitWidth="34" fitHeight="34" preserveRatio="true">
+                <image><Image url="@../images/SDO-Seal.png"/></image>
+            </ImageView>
+            <Label text="© 2026 SDMS | Developed by AlfaDevs." styleClass="app-footer-text"/>
+            <Hyperlink text="DepTrack Site" onAction="#onOpenDepTrack" styleClass="app-footer-link"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="Click footer to view team" styleClass="app-footer-hint"/>
+        </HBox>
+    </bottom>
+</BorderPane>

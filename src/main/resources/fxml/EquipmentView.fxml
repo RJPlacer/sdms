@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.sdms.controller.EquipmentController">
+    <top>
+        <VBox styleClass="module-header">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <padding><Insets top="16" bottom="12" left="20" right="20"/></padding>
+                <Label text="Equipment" styleClass="module-title"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <TextField fx:id="searchField" promptText="Search by borrower, school, event…"
+                           prefWidth="280" styleClass="search-field"/>
+            </HBox>
+            <HBox spacing="8" style="-fx-padding: 0 20 12 20;">
+                <Button text="+ New Record"    styleClass="btn-primary"   onAction="#onAdd"/>
+                <Button text="✏ Edit"          styleClass="btn-secondary" onAction="#onEdit"/>
+                <Button text="🗑 Delete"        styleClass="btn-danger"    onAction="#onDelete"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="📄 Export Report" styleClass="btn-secondary" onAction="#onExportReport"/>
+            </HBox>
+        </VBox>
+    </top>
+    <center>
+        <SplitPane dividerPositions="0.70">
+            <TableView fx:id="equipmentTable" styleClass="data-table">
+                <columns>
+                    <TableColumn fx:id="colEquipmentId" text="Record ID"  prefWidth="120"/>
+                    <TableColumn fx:id="colBorrower"    text="Borrower"   prefWidth="160"/>
+                    <TableColumn fx:id="colSchool"      text="School"     prefWidth="180"/>
+                    <TableColumn fx:id="colEvent"       text="Event"      prefWidth="140"/>
+                    <TableColumn fx:id="colDate"        text="Date"       prefWidth="100"/>
+                </columns>
+                <placeholder><Label text="No equipment records found." style="-fx-text-fill: #888;"/></placeholder>
+            </TableView>
+            <VBox styleClass="preview-panel" spacing="10">
+                <padding><Insets top="20" bottom="20" left="16" right="16"/></padding>
+                <Label text="Preview" styleClass="preview-title"/>
+                <Label fx:id="lblPreviewId"       styleClass="preview-name"  text="—"/>
+                <Label fx:id="lblPreviewBorrower" styleClass="preview-label" text="" wrapText="true"/>
+                <Label fx:id="lblPreviewSchool"   styleClass="preview-label" text="" wrapText="true"/>
+                <Label fx:id="lblPreviewEvent"    styleClass="preview-label" text=""/>
+                <Label fx:id="lblPreviewDate"     styleClass="preview-label" text=""/>
+            </VBox>
+        </SplitPane>
+    </center>
+</BorderPane>
