@@ -175,13 +175,7 @@ public class CoachFormController {
         collectFormData();
         try {
             DatabaseService.getInstance().saveCoach(coach);
-            if (coach.getQrCodePath() == null || coach.getQrCodePath().isBlank()) {
-                String payload = QRCodeService.buildCoachPayload(
-                    coach.getCoachId(), coach.getFullName(), coach.getSchool());
-                String qrPath = QRCodeService.generateQRCode(payload, coach.getCoachId());
-                coach.setQrCodePath(qrPath);
-                DatabaseService.getInstance().updateCoachQrCode(coach.getId(), qrPath);
-            }
+            QRCodeService.refreshCoachQRCode(coach);
             lblGeneratedId.setText("ID: " + coach.getCoachId());
             if (onSave != null) onSave.run();
             close();

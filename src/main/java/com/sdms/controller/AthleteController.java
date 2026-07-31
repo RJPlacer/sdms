@@ -130,11 +130,7 @@ public class AthleteController {
         Athlete sel = athleteTable.getSelectionModel().getSelectedItem();
         if (sel == null) { showInfo("Select an athlete to export."); return; }
         try {
-            if (sel.getQrCodePath() == null || sel.getQrCodePath().isBlank()) {
-                String payload = QRCodeService.buildAthletePayload(sel.getAthleteId(), sel.getFullName(), sel.getSchool());
-                sel.setQrCodePath(QRCodeService.generateQRCode(payload, sel.getAthleteId()));
-                DatabaseService.getInstance().updateAthleteQrCode(sel.getId(), sel.getQrCodePath());
-            }
+            QRCodeService.refreshAthleteQRCode(sel);
             Desktop.getDesktop().open(new File(PDFExportService.exportAthleteIdCard(sel)));
         } catch (Exception e) { showError("Export failed: " + e.getMessage()); }
     }

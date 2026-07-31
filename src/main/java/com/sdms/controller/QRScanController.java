@@ -4,6 +4,7 @@ import com.sdms.model.Athlete;
 import com.sdms.model.Coach;
 import com.sdms.model.Official;
 import com.sdms.service.DatabaseService;
+import com.sdms.service.OnlineVerificationService;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
@@ -51,20 +52,36 @@ public class QRScanController {
         showPhoto(null);
 
         try {
+            String verificationToken = OnlineVerificationService.extractVerificationToken(raw);
+            if (verificationToken != null) {
+                String[] person = DatabaseService.getInstance()
+                    .findPersonByVerificationToken(verificationToken);
+                if (person == null) {
+                    lblStatus.setText("This online verification QR is not linked to a record in this local database.");
+                    return;
+                }
+                showPerson(person[0], person[1]);
+                return;
+            }
+
             ScanPayload payload = parsePayload(raw);
             if (payload.module == null || payload.id == null || payload.id.isBlank()) {
                 lblStatus.setText("Could not parse QR payload. Expected Athlete Track format.");
                 return;
             }
 
-            switch (payload.module) {
-                case "ATHLETE" -> showAthlete(payload.id);
-                case "OFFICIAL" -> showOfficial(payload.id);
-                case "COACH" -> showCoach(payload.id);
-                default -> lblStatus.setText("Unsupported module in QR: " + payload.module);
-            }
+            showPerson(payload.module, payload.id);
         } catch (Exception e) {
             lblStatus.setText("Scan error: " + e.getMessage());
+        }
+    }
+
+    private void showPerson(String module, String id) throws SQLException {
+        switch (module) {
+            case "ATHLETE" -> showAthlete(id);
+            case "OFFICIAL" -> showOfficial(id);
+            case "COACH" -> showCoach(id);
+            default -> lblStatus.setText("Unsupported module in QR: " + module);
         }
     }
 

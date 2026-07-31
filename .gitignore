@@ -1,27 +1,29 @@
-# Maven output
+# Maven and packaged output
 target/
-dependency-reduced-pom.xml
-
-# Packaged applications
 dist/
 dist-debug/
 dist-debug2/
+dependency-reduced-pom.xml
 
-# Databases and test data
+# Runtime databases, photos, QR codes, exports, and secrets
 *.db
 *.db-shm
 *.db-wal
 data/
 manual-test-data/
-
-# Generated exports and temporary files
-exports/
-tmp/
+verification.properties
 *.pdf
 
-# Editor and OS files
+# Portal dependencies and generated output
+verification-portal/node_modules/
+verification-portal/dist/
+verification-portal/.vinext/
+verification-portal/.wrangler/
+verification-portal-package.tar.gz
+
+# Editors and operating system files
 .vscode/
 .idea/
 *.iml
-.DS_Store
 Thumbs.db
+.DS_Store

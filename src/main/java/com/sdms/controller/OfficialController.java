@@ -116,11 +116,7 @@ public class OfficialController {
         Official sel = officialTable.getSelectionModel().getSelectedItem();
         if (sel == null) { showInfo("Select an official first."); return; }
         try {
-            if (sel.getQrCodePath() == null || sel.getQrCodePath().isBlank()) {
-                String payload = QRCodeService.buildOfficialPayload(sel.getOfficialId(), sel.getFullName(), sel.getSchool());
-                sel.setQrCodePath(QRCodeService.generateQRCode(payload, sel.getOfficialId()));
-                DatabaseService.getInstance().updateOfficialQrCode(sel.getId(), sel.getQrCodePath());
-            }
+            QRCodeService.refreshOfficialQRCode(sel);
             Desktop.getDesktop().open(new File(PDFExportService.exportOfficialIdCard(sel)));
         } catch (Exception e) { showError("Export failed: " + e.getMessage()); }
     }

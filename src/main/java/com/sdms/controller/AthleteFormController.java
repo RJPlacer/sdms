@@ -186,14 +186,8 @@ public class AthleteFormController {
             DatabaseService.getInstance().saveAthleteWithRecords(
                 athlete, new ArrayList<>(palaroList), new ArrayList<>(meetList));
 
-            // Generate QR if missing
-            if (athlete.getQrCodePath() == null || athlete.getQrCodePath().isBlank()) {
-                String payload = QRCodeService.buildAthletePayload(
-                    athlete.getAthleteId(), athlete.getFullName(), athlete.getSchool());
-                String qrPath = QRCodeService.generateQRCode(payload, athlete.getAthleteId());
-                athlete.setQrCodePath(qrPath);
-                DatabaseService.getInstance().updateAthleteQrCode(athlete.getId(), qrPath);
-            }
+            // Refresh every time so edited public details and online verification stay current.
+            QRCodeService.refreshAthleteQRCode(athlete);
 
             lblGeneratedId.setText("ID: " + athlete.getAthleteId());
             if (onSave != null) onSave.run();

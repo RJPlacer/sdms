@@ -1,6 +1,7 @@
 package com.sdms.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import com.sdms.model.Athlete;
@@ -25,6 +26,13 @@ class DatabaseServiceIntegrationTest {
             database.saveAthlete(first);
             database.saveAthlete(second);
             database.saveAthlete(third);
+
+            String verificationToken = database.getOrCreateVerificationToken("ATHLETE", first.getId());
+            assertEquals(verificationToken,
+                database.getOrCreateVerificationToken("ATHLETE", first.getId()));
+            assertArrayEquals(new String[]{"ATHLETE", first.getAthleteId()},
+                database.findPersonByVerificationToken(verificationToken));
+
             database.deleteAthlete(second.getId());
 
             Athlete fourth = athlete("Fourth");

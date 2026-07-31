@@ -189,13 +189,7 @@ public class OfficialFormController {
         collectFormData();
         try {
             DatabaseService.getInstance().saveOfficial(official);
-            if (official.getQrCodePath() == null || official.getQrCodePath().isBlank()) {
-                String payload = QRCodeService.buildOfficialPayload(
-                    official.getOfficialId(), official.getFullName(), official.getSchool());
-                String qrPath = QRCodeService.generateQRCode(payload, official.getOfficialId());
-                official.setQrCodePath(qrPath);
-                DatabaseService.getInstance().updateOfficialQrCode(official.getId(), qrPath);
-            }
+            QRCodeService.refreshOfficialQRCode(official);
             lblGeneratedId.setText("ID: " + official.getOfficialId());
             if (onSave != null) onSave.run();
             close();

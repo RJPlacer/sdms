@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class DatabaseService {
 
@@ -63,11 +64,11 @@ public class DatabaseService {
 
     private void createTables() throws SQLException {
         Statement st = connection.createStatement();
-        st.execute("CREATE TABLE IF NOT EXISTS athletes (id INTEGER PRIMARY KEY AUTOINCREMENT, athlete_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, learner_ref TEXT, contact_no TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, school TEXT, school_address TEXT, present_address TEXT, photo_path TEXT, qr_code_path TEXT, mother_name TEXT, father_name TEXT, guardian_address TEXT, cert_meet TEXT, cert_coach_name TEXT, cert_dso_name TEXT, cert_rso_name TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS athletes (id INTEGER PRIMARY KEY AUTOINCREMENT, athlete_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, learner_ref TEXT, contact_no TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, school TEXT, school_address TEXT, present_address TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE, mother_name TEXT, father_name TEXT, guardian_address TEXT, cert_meet TEXT, cert_coach_name TEXT, cert_dso_name TEXT, cert_rso_name TEXT)");
         st.execute("CREATE TABLE IF NOT EXISTS athlete_palaro_previous (id INTEGER PRIMARY KEY AUTOINCREMENT, athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE, year TEXT, sports_event TEXT, venue TEXT, remarks TEXT)");
         st.execute("CREATE TABLE IF NOT EXISTS athlete_lower_meets (id INTEGER PRIMARY KEY AUTOINCREMENT, athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE, inclusive_dates TEXT, sports_event TEXT, athletic_meet TEXT, remarks TEXT)");
-        st.execute("CREATE TABLE IF NOT EXISTS officials (id INTEGER PRIMARY KEY AUTOINCREMENT, official_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, mobile_phone TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, current_position TEXT, years_in_service INTEGER, school TEXT, employee_number TEXT, school_address TEXT, present_address TEXT, emergency_contact_name TEXT, emergency_contact_no TEXT, photo_path TEXT, qr_code_path TEXT)");
-        st.execute("CREATE TABLE IF NOT EXISTS coaches (id INTEGER PRIMARY KEY AUTOINCREMENT, coach_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, mobile_phone TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, current_position TEXT, years_in_service INTEGER, school TEXT, employee_number TEXT, school_address TEXT, present_address TEXT, emergency_contact_name TEXT, emergency_contact_no TEXT, photo_path TEXT, qr_code_path TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS officials (id INTEGER PRIMARY KEY AUTOINCREMENT, official_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, mobile_phone TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, current_position TEXT, years_in_service INTEGER, school TEXT, employee_number TEXT, school_address TEXT, present_address TEXT, emergency_contact_name TEXT, emergency_contact_no TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE)");
+        st.execute("CREATE TABLE IF NOT EXISTS coaches (id INTEGER PRIMARY KEY AUTOINCREMENT, coach_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, mobile_phone TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, current_position TEXT, years_in_service INTEGER, school TEXT, employee_number TEXT, school_address TEXT, present_address TEXT, emergency_contact_name TEXT, emergency_contact_no TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE)");
         for (String p : List.of("official", "coach")) {
             String parentTable = p.equals("official") ? "officials" : "coaches";
             String foreignKey = " REFERENCES " + parentTable + "(id) ON DELETE CASCADE";
@@ -78,6 +79,61 @@ public class DatabaseService {
         st.execute("CREATE TABLE IF NOT EXISTS equipment (id INTEGER PRIMARY KEY AUTOINCREMENT, equipment_id TEXT UNIQUE, borrower_name TEXT, designation TEXT, school TEXT, event TEXT, mobile_no TEXT, date TEXT, issued_by TEXT, issued_to TEXT)");
         st.execute("CREATE TABLE IF NOT EXISTS equipment_items (id INTEGER PRIMARY KEY AUTOINCREMENT, equipment_id INTEGER REFERENCES equipment(id) ON DELETE CASCADE, qty INTEGER, unit TEXT, make_and_description TEXT, date_borrowed TEXT, date_returned TEXT, remarks TEXT)");
         st.close();
+
+        for (String table : List.of("athletes", "officials", "coaches")) {
+            if (!hasColumn(table, "verification_token")) {
+                connection.createStatement().execute(
+                    "ALTER TABLE " + table + " ADD COLUMN verification_token TEXT");
+            }
+            connection.createStatement().execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_" + table + "_verification_token ON "
+                    + table + "(verification_token)");
+        }
+    }
+
+    public String getOrCreateVerificationToken(String personType, int databaseId) throws SQLException {
+        String table = switch (personType.toUpperCase()) {
+            case "ATHLETE" -> "athletes";
+            case "OFFICIAL" -> "officials";
+            case "COACH" -> "coaches";
+            default -> throw new IllegalArgumentException("Unsupported person type: " + personType);
+        };
+
+        try (PreparedStatement select = connection.prepareStatement(
+                "SELECT verification_token FROM " + table + " WHERE id=?")) {
+            select.setInt(1, databaseId);
+            try (ResultSet rs = select.executeQuery()) {
+                if (!rs.next()) throw new SQLException("Record not found while creating verification token.");
+                String existing = rs.getString(1);
+                if (existing != null && !existing.isBlank()) return existing;
+            }
+        }
+
+        String token = UUID.randomUUID().toString();
+        try (PreparedStatement update = connection.prepareStatement(
+                "UPDATE " + table + " SET verification_token=? WHERE id=?")) {
+            update.setString(1, token);
+            update.setInt(2, databaseId);
+            update.executeUpdate();
+        }
+        return token;
+    }
+
+    public String[] findPersonByVerificationToken(String token) throws SQLException {
+        if (token == null || token.isBlank()) return null;
+        for (String[] type : List.of(
+                new String[]{"ATHLETE", "athletes", "athlete_id"},
+                new String[]{"OFFICIAL", "officials", "official_id"},
+                new String[]{"COACH", "coaches", "coach_id"})) {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "SELECT " + type[2] + " FROM " + type[1] + " WHERE verification_token=?")) {
+                ps.setString(1, token);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) return new String[]{type[0], rs.getString(1)};
+                }
+            }
+        }
+        return null;
     }
 
     private void cleanupOrphanedChildren() throws SQLException {

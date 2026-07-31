@@ -5,6 +5,7 @@ import com.sdms.model.Coach;
 import com.sdms.model.Official;
 import com.sdms.service.DatabaseService;
 import com.sdms.service.PDFExportService;
+import com.sdms.service.QRCodeService;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
@@ -45,6 +46,10 @@ public class BatchPrintController {
                 List<Athlete>  athletes  = chkAthletes.isSelected()  ? DatabaseService.getInstance().getAllAthletes()  : List.of();
                 List<Official> officials = chkOfficials.isSelected() ? DatabaseService.getInstance().getAllOfficials() : List.of();
                 List<Coach>    coaches   = chkCoaches.isSelected()   ? DatabaseService.getInstance().getAllCoaches()   : List.of();
+
+                for (Athlete athlete : athletes) QRCodeService.refreshAthleteQRCode(athlete);
+                for (Official official : officials) QRCodeService.refreshOfficialQRCode(official);
+                for (Coach coach : coaches) QRCodeService.refreshCoachQRCode(coach);
 
                 String path = PDFExportService.exportBatchIdCards(athletes, officials, coaches);
 

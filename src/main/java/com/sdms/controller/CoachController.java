@@ -115,11 +115,7 @@ public class CoachController {
         Coach sel = coachTable.getSelectionModel().getSelectedItem();
         if (sel == null) { showInfo("Select a coach first."); return; }
         try {
-            if (sel.getQrCodePath() == null || sel.getQrCodePath().isBlank()) {
-                String payload = QRCodeService.buildCoachPayload(sel.getCoachId(), sel.getFullName(), sel.getSchool());
-                sel.setQrCodePath(QRCodeService.generateQRCode(payload, sel.getCoachId()));
-                DatabaseService.getInstance().updateCoachQrCode(sel.getId(), sel.getQrCodePath());
-            }
+            QRCodeService.refreshCoachQRCode(sel);
             Desktop.getDesktop().open(new File(PDFExportService.exportCoachIdCard(sel)));
         } catch (Exception e) { showError("Export failed: " + e.getMessage()); }
     }

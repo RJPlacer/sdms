@@ -1,0 +1,4 @@
+# Copy this file to the application's data directory as verification.properties.
+# Never commit the real apiKey.
+baseUrl=https://your-verification-site.example
+apiKey=replace-with-the-hosted-sync-secret
