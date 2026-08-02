@@ -33,6 +33,7 @@
             <VBox spacing="2" style="-fx-padding: 0 10 5 10;">
                 <Label text="TOOLS" styleClass="sidebar-section-label"/>
                 <Button fx:id="btnUsers" text="User Accounts" maxWidth="Infinity" styleClass="nav-btn" onAction="#onUserManagement"/>
+                <Button text="Multi-PC Sharing" maxWidth="Infinity" styleClass="nav-btn" onAction="#onSharing"/>
                 <Button text="Global Search" maxWidth="Infinity" styleClass="nav-btn" onAction="#onGlobalSearch"/>
                 <Button text="Scan QR Code" maxWidth="Infinity" styleClass="nav-btn" onAction="#onScanQr"/>
                 <Button text="Batch ID Cards" maxWidth="Infinity" styleClass="nav-btn" onAction="#onBatchPrint"/>
@@ -44,6 +45,7 @@
                 <padding><Insets top="8" right="9" bottom="7" left="9"/></padding>
                 <Label fx:id="lblCurrentUser" text="User" styleClass="sidebar-user-name"/>
                 <Label fx:id="lblUserRole" text="Role" styleClass="sidebar-user-role"/>
+                <Label fx:id="lblConnectionStatus" text="This computer only" wrapText="true" styleClass="sidebar-connection"/>
                 <HBox spacing="8">
                     <Button text="Password" onAction="#onChangePassword" styleClass="sidebar-link-btn"/>
                     <Button text="About" onAction="#onAbout" styleClass="sidebar-link-btn"/>

@@ -23,6 +23,7 @@ Use the left sidebar to open:
 - Equipment
 
 Top actions include:
+- Multi-PC Sharing
 - Global Search
 - Batch Print
 - Delegation Roster
@@ -131,25 +132,55 @@ Same workflow as Officials:
 
 Note: only ADMIN can access user management and delete records.
 
-## 13. Data and Exports Location (Windows)
+## 13. Multi-PC Sharing
+
+### Start the main computer
+
+1. Sign in as an ADMIN on the primary computer.
+2. Open **Multi-PC Sharing** from the left sidebar.
+3. Enter a name for the computer and click **Start Sharing**.
+4. Allow access on private networks if Windows asks.
+5. Give other users the displayed computer address and six-digit connection code.
+
+### Connect an encoder or viewer computer
+
+1. Open Athlete Track and click **Connect to Main Computer**.
+2. Click **Find Computers** and select the main computer.
+3. Enter the six-digit connection code and click **Connect**.
+4. Sign in with the account supplied by the administrator.
+
+The main computer must stay powered on and connected to the same Wi-Fi. If it is
+unavailable, Athlete Track offers **Try Again** or **Use This Computer Only**.
+Using the local database does not delete shared records.
+
+### Back up or replace the main computer
+
+- On the main computer, open Multi-PC Sharing and click **Back Up**.
+- Athlete Track also creates one automatic backup per day and keeps the latest 14.
+- Store the `.atbackup` file in a protected external drive.
+- On a replacement computer, open Multi-PC Sharing, click **Restore**, and select
+  the backup. The replacement becomes the new main computer.
+
+## 14. Data and Exports Location (Windows)
 
 SDMS stores files in:
-- %LOCALAPPDATA%/SDMS
+- `%LOCALAPPDATA%/Athlete Track`
 
 Important subfolders:
-- Database: %LOCALAPPDATA%/SDMS/sdms.db
-- Photos: %LOCALAPPDATA%/SDMS/data/photos
-- QR: %LOCALAPPDATA%/SDMS/data/qrcodes
-- Exports: %LOCALAPPDATA%/SDMS/data/exports
+- Local database: `%LOCALAPPDATA%/Athlete Track/sdms.db`
+- Shared database: `%LOCALAPPDATA%/Athlete Track/shared-database`
+- Shared images: `%LOCALAPPDATA%/Athlete Track/shared-assets`
+- Exports: `%LOCALAPPDATA%/Athlete Track/data/exports`
 
-## 14. Common Issues
+## 15. Common Issues
 
 ### App opens but no records
 - Confirm you are using the correct installed environment.
-- Check if database file exists at %LOCALAPPDATA%/SDMS/sdms.db.
+- Check the database mode shown on the login screen.
+- For shared mode, confirm that the main computer is on and connected to the same Wi-Fi.
 
 ### Export not found
-- Check %LOCALAPPDATA%/SDMS/data/exports.
+- Check `%LOCALAPPDATA%/Athlete Track/data/exports`.
 
 ### Invalid login
 - Ask admin to reset your account password or reactivate account.

@@ -5,6 +5,7 @@ import com.sdms.model.User;
 import com.sdms.util.AppInfo;
 import com.sdms.util.SessionManager;
 import com.sdms.util.PasswordUtil;
+import com.sdms.sharing.SharingManager;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -22,7 +23,7 @@ public class LoginController {
     @FXML private PasswordField txtPassword;
     @FXML private PasswordField txtConfirm;
     @FXML private Label lblError, lblSetup, lblFullName, lblConfirm;
-    @FXML private Label lblVersion;
+    @FXML private Label lblVersion, lblConnection;
     @FXML private Button btnLogin;
     private boolean firstRun;
 
@@ -31,6 +32,7 @@ public class LoginController {
         if (lblVersion != null) {
             lblVersion.setText("Version " + AppInfo.version());
         }
+        refreshConnectionLabel();
         try {
             firstRun = !DatabaseService.getInstance().hasUsers();
             configureMode();
@@ -176,6 +178,37 @@ public class LoginController {
 
     @FXML private void onFooterClick(MouseEvent event) {
         openTeamDialog();
+    }
+
+    @FXML private void onSharing() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/SharingDialog.fxml"));
+            Parent root = loader.load();
+            Stage dialog = new Stage();
+            dialog.initOwner(btnLogin.getScene().getWindow());
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.setTitle("Multi-PC Sharing");
+            Scene scene = new Scene(root, 720, 660);
+            scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
+            dialog.setScene(scene);
+            dialog.showAndWait();
+            SharingController controller = loader.getController();
+            if (controller.isConnectionChanged()) {
+                firstRun = !DatabaseService.getInstance().hasUsers();
+                configureMode();
+                txtUsername.clear();
+                txtPassword.clear();
+            }
+            refreshConnectionLabel();
+        } catch (Exception e) {
+            showError("Could not open multi-PC sharing: " + e.getMessage());
+        }
+    }
+
+    private void refreshConnectionLabel() {
+        if (lblConnection != null) {
+            lblConnection.setText(SharingManager.getInstance().statusText());
+        }
     }
 
     private void openTeamDialog() {

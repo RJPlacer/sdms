@@ -4,6 +4,7 @@ import com.sdms.model.Athlete;
 import com.sdms.service.DatabaseService;
 import com.sdms.service.PDFExportService;
 import com.sdms.service.QRCodeService;
+import com.sdms.sharing.SharedAssetService;
 import com.sdms.util.SessionManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -93,9 +94,9 @@ public class AthleteController {
         lblPreviewId.setText(a.getAthleteId());
         lblPreviewSchool.setText(a.getSchool());
         if (a.getPhotoPath() != null && !a.getPhotoPath().isBlank())
-            try { imgPreviewPhoto.setImage(new Image("file:" + a.getPhotoPath())); } catch (Exception ignored) {}
+            try { imgPreviewPhoto.setImage(new Image(SharedAssetService.imageUrl(a.getPhotoPath()))); } catch (Exception ignored) {}
         if (a.getQrCodePath() != null && !a.getQrCodePath().isBlank())
-            try { imgPreviewQR.setImage(new Image("file:" + a.getQrCodePath())); } catch (Exception ignored) {}
+            try { imgPreviewQR.setImage(new Image(SharedAssetService.imageUrl(a.getQrCodePath()))); } catch (Exception ignored) {}
     }
 
     @FXML private void onAddAthlete() {

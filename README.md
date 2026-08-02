@@ -1,6 +1,7 @@
 # Sports Delegation Management System (SDMS)
 
-JavaFX + SQLite desktop application for Palarong Pambansa delegation management.
+JavaFX desktop application for Palarong Pambansa delegation management. It supports
+both single-computer SQLite storage and optional same-Wi-Fi multi-computer sharing.
 
 ## Documentation
 
@@ -40,13 +41,39 @@ mvn -DskipTests package
 
 Output:
 
-- target/sports-delegation-ms-1.4.0-shaded.jar
+- target/sports-delegation-ms-1.5.0-shaded.jar
 
 Run the packaged JAR with JDK 17+:
 
 ```bash
-java -jar target/sports-delegation-ms-1.4.0-shaded.jar
+java -jar target/sports-delegation-ms-1.5.0-shaded.jar
 ```
+
+## Same-Wi-Fi Multi-PC Sharing
+
+Version 1.5.0 can keep administrators, encoders, and viewers on one central set
+of records without copying database files or using a hosted website.
+
+On the administrator's primary computer:
+
+1. Sign in as an administrator.
+2. Open **Multi-PC Sharing** from the sidebar.
+3. Enter a recognizable computer name and click **Start Sharing**.
+4. Allow Athlete Track on private networks if Windows Firewall asks.
+5. Leave this main computer powered on while other users are working.
+
+On each additional computer:
+
+1. Install the same Athlete Track version.
+2. Click **Connect to Main Computer** on the login screen.
+3. Select the detected main computer, enter its six-digit code, and click **Connect**.
+4. Sign in with the account created by the administrator.
+
+Use **Back Up** on the main computer to create an `.atbackup` file containing the
+shared database and images. On a replacement computer, open Multi-PC Sharing and
+choose **Restore**. Keep backup files private because they contain user accounts
+and connection information. The main computer also keeps one automatic backup per
+day and retains the most recent 14 automatic backups.
 
 ## Local Android QR Scanner
 
@@ -253,7 +280,7 @@ build-installer.cmd -SkipBuild -CleanOutput
 
 Installer output:
 
-- dist/Athlete Track-1.4.0.exe
+- dist/Athlete Track-1.5.0.exe
 
 ### Updating an installed copy
 
@@ -261,10 +288,10 @@ The Windows package now has a permanent upgrade identity. To publish a newer
 release, choose a version greater than the installed version and run:
 
 ```powershell
-build-installer.cmd -AppVersion 1.4.0
+build-installer.cmd -AppVersion 1.5.0
 ```
 
-Give users the resulting `Athlete Track-1.4.0.exe`. They should close Athlete
+Give users the resulting `Athlete Track-1.5.0.exe`. They should close Athlete
 Track and run the new installer normally. Windows replaces the installed
 program in place; users do not uninstall the old version first.
 
@@ -273,7 +300,7 @@ are stored under the user's local application-data directory, outside the
 installation directory, so an in-place upgrade preserves them.
 
 Version numbers must increase and use three numeric parts, such as `1.1.0`,
-`1.3.0`, then `1.4.0`. The script passes the same version to Maven, the app's
+`1.4.0`, then `1.5.0`. The script passes the same version to Maven, the app's
 About screen, and the Windows installer.
 
 ## Current Runtime Data Paths (Windows)
@@ -282,4 +309,7 @@ About screen, and the Windows installer.
 - Legacy installs continue using: `%LOCALAPPDATA%/SDMS`
 - Database: `<app-data>/sdms.db`
 - Photos, QR codes, and exports: `<app-data>/data`
+- Shared database: `<app-data>/shared-database` (main computer only)
+- Shared photos and QR codes: `<app-data>/shared-assets` (main computer only)
+- Multi-PC settings: `<app-data>/sharing.properties`
 - Startup logs: `<app-data>/logs/startup-error.log`

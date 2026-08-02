@@ -2,6 +2,7 @@ package com.sdms.controller;
 
 import com.sdms.util.SessionManager;
 import com.sdms.util.AppInfo;
+import com.sdms.sharing.SharingManager;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -20,7 +21,7 @@ public class MainController {
 
     @FXML private StackPane contentArea;
     @FXML private Button btnDashboard, btnAthletes, btnOfficials, btnCoaches, btnEquipment;
-    @FXML private Label lblCurrentUser, lblUserRole;
+    @FXML private Label lblCurrentUser, lblUserRole, lblConnectionStatus;
     @FXML private Button btnUsers;
 
     private List<Button> navButtons;
@@ -33,6 +34,7 @@ public class MainController {
         }
         btnUsers.setVisible(SessionManager.isAdmin());
         btnUsers.setManaged(SessionManager.isAdmin());
+        lblConnectionStatus.setText(SharingManager.getInstance().statusText());
         onNavDashboard();
     }
 
@@ -55,6 +57,25 @@ public class MainController {
     @FXML private void onRoster()          { openDialog("/fxml/Roster.fxml",          "Delegation Roster",     480, 400); }
     @FXML private void onChangePassword()  { openDialog("/fxml/ChangePassword.fxml",  "Change Password",       420, 360); }
     @FXML private void onAbout()           { openDialog("/fxml/About.fxml",           "About Athlete Track",   560, 580); }
+    @FXML private void onSharing() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/SharingDialog.fxml"));
+            Parent root = loader.load();
+            Stage dialog = new Stage();
+            dialog.initOwner(contentArea.getScene().getWindow());
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.setTitle("Multi-PC Sharing");
+            Scene scene = new Scene(root, 720, 660);
+            scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
+            dialog.setScene(scene);
+            dialog.showAndWait();
+            SharingController controller = loader.getController();
+            lblConnectionStatus.setText(SharingManager.getInstance().statusText());
+            if (controller.isConnectionChanged()) returnToLogin();
+        } catch (Exception e) {
+            new Alert(Alert.AlertType.ERROR, "Could not open multi-PC sharing: " + e.getMessage()).showAndWait();
+        }
+    }
     @FXML private void onFooterClick(MouseEvent event) {
         openDialog("/fxml/TeamDialog.fxml", "About the Developer", 760, 620);
     }
@@ -64,20 +85,24 @@ public class MainController {
             "Log out of Athlete Track?", ButtonType.YES, ButtonType.CANCEL);
         confirm.setTitle("Confirm Logout");
         if (confirm.showAndWait().filter(b -> b == ButtonType.YES).isPresent()) {
-            SessionManager.logout();
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Login.fxml"));
-                Scene scene = new Scene(loader.load());
-                scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
-                Stage stage = (Stage) btnDashboard.getScene().getWindow();
-                stage.setScene(scene);
-                stage.setWidth(980); stage.setHeight(680);
-                stage.setMinWidth(860); stage.setMinHeight(620);
-                stage.centerOnScreen();
-                stage.setTitle(AppInfo.appName() + " - Login (" + AppInfo.displayVersion() + ")");
-            } catch (IOException e) {
-                new Alert(Alert.AlertType.ERROR, "Logout error: " + e.getMessage()).showAndWait();
-            }
+            returnToLogin();
+        }
+    }
+
+    private void returnToLogin() {
+        SessionManager.logout();
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Login.fxml"));
+            Scene scene = new Scene(loader.load());
+            scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
+            Stage stage = (Stage) btnDashboard.getScene().getWindow();
+            stage.setScene(scene);
+            stage.setWidth(980); stage.setHeight(680);
+            stage.setMinWidth(860); stage.setMinHeight(620);
+            stage.centerOnScreen();
+            stage.setTitle(AppInfo.appName() + " - Login (" + AppInfo.displayVersion() + ")");
+        } catch (IOException e) {
+            new Alert(Alert.AlertType.ERROR, "Could not return to login: " + e.getMessage()).showAndWait();
         }
     }
 

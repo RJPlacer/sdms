@@ -3,6 +3,7 @@ package com.sdms.service;
 import com.sdms.model.Athlete;
 import com.sdms.model.Coach;
 import com.sdms.model.Official;
+import com.sdms.sharing.SharedAssetService;
 import com.sdms.util.AppPaths;
 
 import java.io.IOException;
@@ -115,7 +116,7 @@ public final class OnlineVerificationService {
     private static PhotoData readPhoto(String photoPath) {
         if (photoPath == null || photoPath.isBlank()) return null;
         try {
-            Path path = Path.of(photoPath);
+            Path path = SharedAssetService.localPath(photoPath);
             if (!Files.isRegularFile(path) || Files.size(path) > MAX_PHOTO_BYTES) return null;
             String contentType = Files.probeContentType(path);
             if (contentType == null) {
@@ -125,6 +126,9 @@ public final class OnlineVerificationService {
             if (!contentType.equals("image/jpeg") && !contentType.equals("image/png")) return null;
             return new PhotoData(Base64.getEncoder().encodeToString(Files.readAllBytes(path)), contentType);
         } catch (IOException | RuntimeException ignored) {
+            return null;
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
             return null;
         }
     }

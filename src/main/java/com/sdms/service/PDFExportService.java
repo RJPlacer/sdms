@@ -6,6 +6,7 @@ import com.sdms.model.Athlete;
 import com.sdms.model.Coach;
 import com.sdms.model.Equipment;
 import com.sdms.model.Official;
+import com.sdms.sharing.SharedAssetService;
 import com.sdms.util.AppPaths;
 
 import java.awt.Color;
@@ -53,7 +54,8 @@ public class PDFExportService {
         cb.rectangle(photoX, photoY, photoW, photoH); cb.fill();
         if (photoPath != null && !photoPath.isBlank()) {
             try {
-                Image photo = Image.getInstance(photoPath);
+                Path localPhoto = SharedAssetService.localPath(photoPath);
+                Image photo = Image.getInstance(localPhoto.toString());
                 drawCoverImage(cb, photo, photoX, photoY, photoW, photoH);
             } catch (Exception ignored) {}
         }
@@ -64,7 +66,8 @@ public class PDFExportService {
         // QR Code
         if (qrCodePath != null && !qrCodePath.isBlank()) {
             try {
-                Image qr = Image.getInstance(qrCodePath);
+                Path localQr = SharedAssetService.localPath(qrCodePath);
+                Image qr = Image.getInstance(localQr.toString());
                 qr.setAbsolutePosition(cardW-55, 28); qr.scaleToFit(50, 50); doc.add(qr);
             } catch (Exception ignored) {}
         }
@@ -159,7 +162,8 @@ public class PDFExportService {
             // QR
             if (a.getQrCodePath() != null && !a.getQrCodePath().isBlank()) {
                 try {
-                    Image qr = Image.getInstance(a.getQrCodePath());
+                    Path localQr = SharedAssetService.localPath(a.getQrCodePath());
+                    Image qr = Image.getInstance(localQr.toString());
                     qr.setAbsolutePosition(x + cardW - 50, y + 8); qr.scaleToFit(44, 44); doc.add(qr);
                 } catch (Exception ignored) {}
             }

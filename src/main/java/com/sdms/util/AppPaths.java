@@ -12,11 +12,9 @@ public final class AppPaths {
 
     private static final String APP_NAME = "Athlete Track";
     private static final String LEGACY_APP_NAME = "SDMS";
-    private static final Path APP_DIR = resolveAppDir();
-
     private AppPaths() {}
 
-    public static Path appDir() { return ensureDir(APP_DIR); }
+    public static Path appDir() { return ensureDir(resolveAppDir()); }
 
     public static Path dbPath() { return appDir().resolve("sdms.db"); }
 
@@ -29,6 +27,20 @@ public final class AppPaths {
     public static Path exportsDir() { return ensureDir(dataDir().resolve("exports")); }
 
     public static Path logsDir() { return ensureDir(appDir().resolve("logs")); }
+
+    public static Path sharingConfigPath() { return appDir().resolve("sharing.properties"); }
+
+    public static Path sharedDatabaseDir() { return ensureDir(appDir().resolve("shared-database")); }
+
+    public static Path sharedAssetsDir() { return ensureDir(appDir().resolve("shared-assets")); }
+
+    public static Path sharedPhotosDir() { return ensureDir(sharedAssetsDir().resolve("photos")); }
+
+    public static Path sharedQrCodesDir() { return ensureDir(sharedAssetsDir().resolve("qrcodes")); }
+
+    public static Path cacheDir() { return ensureDir(appDir().resolve("cache")); }
+
+    public static Path backupsDir() { return ensureDir(appDir().resolve("backups")); }
 
     private static Path resolveAppDir() {
         String override = System.getProperty("sdms.appDir");

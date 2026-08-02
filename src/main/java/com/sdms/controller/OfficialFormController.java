@@ -3,7 +3,7 @@ package com.sdms.controller;
 import com.sdms.model.Official;
 import com.sdms.service.DatabaseService;
 import com.sdms.service.QRCodeService;
-import com.sdms.util.AppPaths;
+import com.sdms.sharing.SharedAssetService;
 import com.sdms.util.AgeUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,9 +16,6 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 
 public class OfficialFormController {
@@ -112,8 +109,8 @@ public class OfficialFormController {
 
         if (o.getPhotoPath() != null && !o.getPhotoPath().isBlank()) {
             selectedPhotoPath = o.getPhotoPath();
-            lblPhotoPath.setText(new File(selectedPhotoPath).getName());
-            try { imgPhoto.setImage(new Image("file:" + selectedPhotoPath)); } catch (Exception ignored) {}
+            lblPhotoPath.setText(SharedAssetService.displayName(selectedPhotoPath));
+            try { imgPhoto.setImage(new Image(SharedAssetService.imageUrl(selectedPhotoPath))); } catch (Exception ignored) {}
         }
         educationList.setAll(o.getEducationalQualifications());
         trainingList.setAll(o.getSportsTrainings());
@@ -127,12 +124,9 @@ public class OfficialFormController {
         File chosen = fc.showOpenDialog(txtLastName.getScene().getWindow());
         if (chosen != null) {
             try {
-                Path dir = AppPaths.photosDir();
-                Path dest = dir.resolve(chosen.getName());
-                Files.copy(chosen.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
-                selectedPhotoPath = dest.toAbsolutePath().toString();
+                selectedPhotoPath = SharedAssetService.importPhoto(chosen.toPath());
                 lblPhotoPath.setText(chosen.getName());
-                imgPhoto.setImage(new Image("file:" + selectedPhotoPath));
+                imgPhoto.setImage(new Image(SharedAssetService.imageUrl(selectedPhotoPath)));
             } catch (Exception e) { showError("Could not copy photo: " + e.getMessage()); }
         }
     }

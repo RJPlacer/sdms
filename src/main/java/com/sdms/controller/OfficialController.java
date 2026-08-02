@@ -4,6 +4,7 @@ import com.sdms.model.Official;
 import com.sdms.service.DatabaseService;
 import com.sdms.service.PDFExportService;
 import com.sdms.service.QRCodeService;
+import com.sdms.sharing.SharedAssetService;
 import com.sdms.util.SessionManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -86,9 +87,9 @@ public class OfficialController {
         lblPreviewName.setText(o.getFullName()); lblPreviewId.setText(o.getOfficialId());
         lblPreviewPosition.setText(o.getCurrentPosition()); lblPreviewSchool.setText(o.getSchool());
         if (o.getPhotoPath() != null && !o.getPhotoPath().isBlank())
-            try { imgPreviewPhoto.setImage(new Image("file:" + o.getPhotoPath())); } catch (Exception ignored) {}
+            try { imgPreviewPhoto.setImage(new Image(SharedAssetService.imageUrl(o.getPhotoPath()))); } catch (Exception ignored) {}
         if (o.getQrCodePath() != null && !o.getQrCodePath().isBlank())
-            try { imgPreviewQR.setImage(new Image("file:" + o.getQrCodePath())); } catch (Exception ignored) {}
+            try { imgPreviewQR.setImage(new Image(SharedAssetService.imageUrl(o.getQrCodePath()))); } catch (Exception ignored) {}
     }
 
     @FXML private void onAdd() {

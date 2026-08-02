@@ -10,6 +10,7 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import com.sdms.model.Athlete;
 import com.sdms.model.Coach;
 import com.sdms.model.Official;
+import com.sdms.sharing.SharedAssetService;
 import com.sdms.util.AppPaths;
 
 import java.io.IOException;
@@ -27,7 +28,7 @@ public class QRCodeService {
     private static final int QR_SIZE = 300;          // pixels
 
     public static String generateQRCode(String content, String fileName) throws WriterException, IOException {
-        Path qrDir = AppPaths.qrCodesDir();
+        Path qrDir = AppPaths.cacheDir();
 
         Map<EncodeHintType, Object> hints = new HashMap<>();
         hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
@@ -36,10 +37,16 @@ public class QRCodeService {
         QRCodeWriter writer = new QRCodeWriter();
         BitMatrix matrix = writer.encode(content, BarcodeFormat.QR_CODE, QR_SIZE, QR_SIZE, hints);
 
-        Path output = qrDir.resolve(fileName + ".png");
+        Path output = Files.createTempFile(qrDir, "qr-", ".png");
         MatrixToImageWriter.writeToPath(matrix, "PNG", output);
-
-        return output.toAbsolutePath().toString();
+        try {
+            return SharedAssetService.importQrCode(output, fileName + ".png");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("QR image upload was interrupted.", e);
+        } finally {
+            Files.deleteIfExists(output);
+        }
     }
 
     /**

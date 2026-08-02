@@ -86,6 +86,14 @@
                     <Button fx:id="btnLogin" text="Log In" maxWidth="Infinity"
                             onAction="#onLogin" defaultButton="true" styleClass="btn-primary"/>
 
+                    <Button text="Connect to Main Computer" maxWidth="Infinity"
+                            onAction="#onSharing" styleClass="btn-secondary"/>
+
+                    <HBox alignment="CENTER" spacing="6">
+                        <Label text="Database:" styleClass="login-version"/>
+                        <Label fx:id="lblConnection" text="This computer only" styleClass="login-connection"/>
+                    </HBox>
+
                     <Region VBox.vgrow="ALWAYS"/>
                     <Label fx:id="lblVersion" text="Version" alignment="CENTER" maxWidth="Infinity" styleClass="login-version"/>
                 </VBox>

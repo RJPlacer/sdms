@@ -4,6 +4,7 @@ import com.sdms.model.Coach;
 import com.sdms.service.DatabaseService;
 import com.sdms.service.PDFExportService;
 import com.sdms.service.QRCodeService;
+import com.sdms.sharing.SharedAssetService;
 import com.sdms.util.SessionManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -85,9 +86,9 @@ public class CoachController {
         lblPreviewName.setText(c.getFullName()); lblPreviewId.setText(c.getCoachId());
         lblPreviewPosition.setText(c.getCurrentPosition()); lblPreviewSchool.setText(c.getSchool());
         if (c.getPhotoPath() != null && !c.getPhotoPath().isBlank())
-            try { imgPreviewPhoto.setImage(new Image("file:" + c.getPhotoPath())); } catch (Exception ignored) {}
+            try { imgPreviewPhoto.setImage(new Image(SharedAssetService.imageUrl(c.getPhotoPath()))); } catch (Exception ignored) {}
         if (c.getQrCodePath() != null && !c.getQrCodePath().isBlank())
-            try { imgPreviewQR.setImage(new Image("file:" + c.getQrCodePath())); } catch (Exception ignored) {}
+            try { imgPreviewQR.setImage(new Image(SharedAssetService.imageUrl(c.getQrCodePath()))); } catch (Exception ignored) {}
     }
 
     @FXML private void onAdd() {

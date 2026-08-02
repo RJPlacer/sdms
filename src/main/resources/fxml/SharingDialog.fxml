@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.sdms.controller.SharingController"
+            styleClass="form-root" prefWidth="720" prefHeight="660">
+    <top>
+        <VBox styleClass="sharing-header" spacing="6">
+            <padding><Insets top="22" right="26" bottom="20" left="26"/></padding>
+            <Label text="Multi-PC Sharing" styleClass="sharing-title"/>
+            <Label text="Let encoders, viewers, and administrators use one shared set of records over the same Wi-Fi."
+                   wrapText="true" styleClass="sharing-subtitle"/>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="edge-to-edge">
+            <VBox spacing="16">
+                <padding><Insets top="18" right="24" bottom="18" left="24"/></padding>
+
+                <GridPane styleClass="sharing-status-card" hgap="16" vgap="8">
+                    <padding><Insets top="14" right="18" bottom="14" left="18"/></padding>
+                    <Label text="Current mode" styleClass="field-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblMode" text="This computer only" styleClass="sharing-mode" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    <Label text="Status" styleClass="field-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblStatus" text="Ready" wrapText="true" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    <Label text="Main computer address" styleClass="field-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblHostAddress" text="-" styleClass="sharing-value" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    <Label text="Connection code" styleClass="field-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblPairingCode" text="-" styleClass="sharing-code" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="160"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+                </GridPane>
+
+                <VBox styleClass="sharing-card" spacing="10">
+                    <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+                    <Label text="Make this the main computer" styleClass="sharing-card-title"/>
+                    <Label text="Use this on the administrator's primary computer. Existing local records and accounts will be copied automatically."
+                           wrapText="true" styleClass="sharing-card-copy"/>
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <TextField fx:id="txtServerName" promptText="Example: Division Office Main Computer" HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="btnStartHost" text="Start Sharing" onAction="#onStartHost" styleClass="btn-primary"/>
+                        <Button fx:id="btnBackup" text="Back Up" onAction="#onBackup" styleClass="btn-secondary"/>
+                        <Button fx:id="btnRestore" text="Restore" onAction="#onRestore" styleClass="btn-secondary"/>
+                    </HBox>
+                </VBox>
+
+                <VBox styleClass="sharing-card" spacing="10">
+                    <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <VBox spacing="3" HBox.hgrow="ALWAYS">
+                            <Label text="Connect this computer" styleClass="sharing-card-title"/>
+                            <Label text="Select the main computer and enter the six-digit code displayed there."
+                                   wrapText="true" styleClass="sharing-card-copy"/>
+                        </VBox>
+                        <Button fx:id="btnDiscover" text="Find Computers" onAction="#onDiscover" styleClass="btn-secondary"/>
+                    </HBox>
+                    <ComboBox fx:id="cmbHosts" promptText="Automatically detected computers"
+                              onAction="#onHostSelected" maxWidth="Infinity"/>
+                    <HBox spacing="10">
+                        <TextField fx:id="txtHost" promptText="Main computer address, for example 192.168.1.20" HBox.hgrow="ALWAYS"/>
+                        <TextField fx:id="txtPairingCode" promptText="6-digit code" prefWidth="150"/>
+                        <Button fx:id="btnConnect" text="Connect" onAction="#onConnect" styleClass="btn-primary"/>
+                    </HBox>
+                    <Button fx:id="btnUseLocal" text="Disconnect and Use This Computer Only"
+                            onAction="#onUseLocal" styleClass="btn-danger-outline" maxWidth="Infinity"/>
+                </VBox>
+
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <ProgressIndicator fx:id="progress" prefWidth="22" prefHeight="22"/>
+                    <Label fx:id="lblMessage" text="" wrapText="true" HBox.hgrow="ALWAYS"/>
+                </HBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" styleClass="form-footer">
+            <padding><Insets top="12" right="20" bottom="12" left="20"/></padding>
+            <Button text="Close" onAction="#onClose" styleClass="btn-secondary"/>
+        </HBox>
+    </bottom>
+</BorderPane>

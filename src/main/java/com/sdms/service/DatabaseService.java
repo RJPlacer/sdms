@@ -1,6 +1,7 @@
 package com.sdms.service;
 
 import com.sdms.model.*;
+import com.sdms.sharing.SharingManager;
 import com.sdms.util.AppPaths;
 
 import java.sql.*;
@@ -14,7 +15,7 @@ public class DatabaseService {
 
     private static DatabaseService instance;
     private Connection connection;
-    private static final String DB_URL = "jdbc:sqlite:" + AppPaths.dbPath().toString();
+    private boolean sharedDatabase;
 
     private DatabaseService() {}
 
@@ -41,20 +42,40 @@ public class DatabaseService {
         return instance;
     }
 
-    public void initializeDatabase() {
+    public synchronized void initializeDatabase() {
         try {
-            connection = DriverManager.getConnection(DB_URL);
-            connection.createStatement().execute("PRAGMA foreign_keys = ON");
+            closeConnection();
+            SharingManager sharing = SharingManager.getInstance();
+            sharedDatabase = sharing.isShared();
+            Class.forName(sharedDatabase ? "org.h2.Driver" : "org.sqlite.JDBC");
+            connection = sharedDatabase
+                ? DriverManager.getConnection(sharing.jdbcUrl(), sharing.databaseUser(), sharing.databasePassword())
+                : DriverManager.getConnection(sharing.jdbcUrl());
+            if (sharedDatabase) {
+                connection.createStatement().execute("SET DEFAULT_LOCK_TIMEOUT 10000");
+            } else {
+                connection.createStatement().execute("PRAGMA foreign_keys = ON");
+            }
             createTables();
             cleanupOrphanedChildren();
             createUserTable();
-        } catch (SQLException e) {
+        } catch (SQLException | ClassNotFoundException e) {
             throw new RuntimeException("Failed to open database: " + e.getMessage(), e);
         }
     }
 
-    public void closeConnection() {
+    public synchronized void closeConnection() {
         try { if (connection != null) connection.close(); } catch (SQLException ignored) {}
+        connection = null;
+    }
+
+    public synchronized void reinitialize() {
+        initializeDatabase();
+    }
+
+    public synchronized Connection maintenanceConnection() {
+        if (connection == null) throw new IllegalStateException("The database is not open.");
+        return connection;
     }
 
     public int countTable(String table) throws SQLException {
@@ -64,20 +85,22 @@ public class DatabaseService {
 
     private void createTables() throws SQLException {
         Statement st = connection.createStatement();
-        st.execute("CREATE TABLE IF NOT EXISTS athletes (id INTEGER PRIMARY KEY AUTOINCREMENT, athlete_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, learner_ref TEXT, contact_no TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, school TEXT, school_address TEXT, present_address TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE, mother_name TEXT, father_name TEXT, guardian_address TEXT, cert_meet TEXT, cert_coach_name TEXT, cert_dso_name TEXT, cert_rso_name TEXT)");
-        st.execute("CREATE TABLE IF NOT EXISTS athlete_palaro_previous (id INTEGER PRIMARY KEY AUTOINCREMENT, athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE, year TEXT, sports_event TEXT, venue TEXT, remarks TEXT)");
-        st.execute("CREATE TABLE IF NOT EXISTS athlete_lower_meets (id INTEGER PRIMARY KEY AUTOINCREMENT, athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE, inclusive_dates TEXT, sports_event TEXT, athletic_meet TEXT, remarks TEXT)");
-        st.execute("CREATE TABLE IF NOT EXISTS officials (id INTEGER PRIMARY KEY AUTOINCREMENT, official_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, mobile_phone TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, current_position TEXT, years_in_service INTEGER, school TEXT, employee_number TEXT, school_address TEXT, present_address TEXT, emergency_contact_name TEXT, emergency_contact_no TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE)");
-        st.execute("CREATE TABLE IF NOT EXISTS coaches (id INTEGER PRIMARY KEY AUTOINCREMENT, coach_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, mobile_phone TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, current_position TEXT, years_in_service INTEGER, school TEXT, employee_number TEXT, school_address TEXT, present_address TEXT, emergency_contact_name TEXT, emergency_contact_no TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE)");
+        String id = idColumn();
+        st.execute("CREATE TABLE IF NOT EXISTS athletes (id " + id + ", athlete_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, learner_ref TEXT, contact_no TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, school TEXT, school_address TEXT, present_address TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE, mother_name TEXT, father_name TEXT, guardian_address TEXT, cert_meet TEXT, cert_coach_name TEXT, cert_dso_name TEXT, cert_rso_name TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS athlete_palaro_previous (id " + id + ", athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE, year TEXT, sports_event TEXT, venue TEXT, remarks TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS athlete_lower_meets (id " + id + ", athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE, inclusive_dates TEXT, sports_event TEXT, athletic_meet TEXT, remarks TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS officials (id " + id + ", official_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, mobile_phone TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, current_position TEXT, years_in_service INTEGER, school TEXT, employee_number TEXT, school_address TEXT, present_address TEXT, emergency_contact_name TEXT, emergency_contact_no TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE)");
+        st.execute("CREATE TABLE IF NOT EXISTS coaches (id " + id + ", coach_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, mobile_phone TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, current_position TEXT, years_in_service INTEGER, school TEXT, employee_number TEXT, school_address TEXT, present_address TEXT, emergency_contact_name TEXT, emergency_contact_no TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE)");
         for (String p : List.of("official", "coach")) {
             String parentTable = p.equals("official") ? "officials" : "coaches";
             String foreignKey = " REFERENCES " + parentTable + "(id) ON DELETE CASCADE";
-            st.execute("CREATE TABLE IF NOT EXISTS " + p + "_education (id INTEGER PRIMARY KEY AUTOINCREMENT, parent_id INTEGER" + foreignKey + ", level TEXT, course TEXT, school TEXT, year_graduated TEXT, credits_earned TEXT, awards_received TEXT)");
-            st.execute("CREATE TABLE IF NOT EXISTS " + p + "_sports_training (id INTEGER PRIMARY KEY AUTOINCREMENT, parent_id INTEGER" + foreignKey + ", title TEXT, date_of_training TEXT, num_hours INTEGER, conducted_by TEXT)");
-            st.execute("CREATE TABLE IF NOT EXISTS " + p + "_track_record (id INTEGER PRIMARY KEY AUTOINCREMENT, parent_id INTEGER" + foreignKey + ", meet_attended TEXT, inclusive_dates TEXT, event TEXT, awards_received TEXT)");
+            st.execute("CREATE TABLE IF NOT EXISTS " + p + "_education (id " + id + ", parent_id INTEGER" + foreignKey + ", level TEXT, course TEXT, school TEXT, year_graduated TEXT, credits_earned TEXT, awards_received TEXT)");
+            st.execute("CREATE TABLE IF NOT EXISTS " + p + "_sports_training (id " + id + ", parent_id INTEGER" + foreignKey + ", title TEXT, date_of_training TEXT, num_hours INTEGER, conducted_by TEXT)");
+            st.execute("CREATE TABLE IF NOT EXISTS " + p + "_track_record (id " + id + ", parent_id INTEGER" + foreignKey + ", meet_attended TEXT, inclusive_dates TEXT, event TEXT, awards_received TEXT)");
         }
-        st.execute("CREATE TABLE IF NOT EXISTS equipment (id INTEGER PRIMARY KEY AUTOINCREMENT, equipment_id TEXT UNIQUE, borrower_name TEXT, designation TEXT, school TEXT, event TEXT, mobile_no TEXT, date TEXT, issued_by TEXT, issued_to TEXT)");
-        st.execute("CREATE TABLE IF NOT EXISTS equipment_items (id INTEGER PRIMARY KEY AUTOINCREMENT, equipment_id INTEGER REFERENCES equipment(id) ON DELETE CASCADE, qty INTEGER, unit TEXT, make_and_description TEXT, date_borrowed TEXT, date_returned TEXT, remarks TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS equipment (id " + id + ", equipment_id TEXT UNIQUE, borrower_name TEXT, designation TEXT, school TEXT, event TEXT, mobile_no TEXT, date TEXT, issued_by TEXT, issued_to TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS equipment_items (id " + id + ", equipment_id INTEGER REFERENCES equipment(id) ON DELETE CASCADE, qty INTEGER, unit TEXT, make_and_description TEXT, date_borrowed TEXT, date_returned TEXT, remarks TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS id_sequences (sequence_key TEXT PRIMARY KEY, next_value INTEGER NOT NULL)");
         st.close();
 
         for (String table : List.of("athletes", "officials", "coaches")) {
@@ -89,6 +112,12 @@ public class DatabaseService {
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_" + table + "_verification_token ON "
                     + table + "(verification_token)");
         }
+    }
+
+    private String idColumn() {
+        return sharedDatabase
+            ? "INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY"
+            : "INTEGER PRIMARY KEY AUTOINCREMENT";
     }
 
     public String getOrCreateVerificationToken(String personType, int databaseId) throws SQLException {
@@ -150,6 +179,7 @@ public class DatabaseService {
 
     private String generateId(String prefix, String table, String col) throws SQLException {
         int year = Year.now().getValue();
+        if (sharedDatabase) return generateSharedId(prefix, table, col, year);
         int maxSequence = 0;
         String marker = prefix + "-" + year + "-";
         try (PreparedStatement ps = connection.prepareStatement(
@@ -167,6 +197,58 @@ public class DatabaseService {
             }
         }
         return "%s-%d-%04d".formatted(prefix, year, maxSequence + 1);
+    }
+
+    private String generateSharedId(String prefix, String table, String col, int year) throws SQLException {
+        String key = prefix + "-" + year;
+        for (int attempt = 0; attempt < 4; attempt++) {
+            try (PreparedStatement select = connection.prepareStatement(
+                    "SELECT next_value FROM id_sequences WHERE sequence_key=? FOR UPDATE")) {
+                select.setString(1, key);
+                try (ResultSet rs = select.executeQuery()) {
+                    if (rs.next()) {
+                        int value = rs.getInt(1);
+                        try (PreparedStatement update = connection.prepareStatement(
+                                "UPDATE id_sequences SET next_value=? WHERE sequence_key=?")) {
+                            update.setInt(1, value + 1);
+                            update.setString(2, key);
+                            update.executeUpdate();
+                        }
+                        return "%s-%d-%04d".formatted(prefix, year, value);
+                    }
+                }
+            }
+
+            int first = nextExistingSequence(prefix, table, col, year);
+            try (PreparedStatement insert = connection.prepareStatement(
+                    "INSERT INTO id_sequences (sequence_key, next_value) VALUES (?,?)")) {
+                insert.setString(1, key);
+                insert.setInt(2, first + 1);
+                insert.executeUpdate();
+                return "%s-%d-%04d".formatted(prefix, year, first);
+            } catch (SQLIntegrityConstraintViolationException race) {
+                // Another encoder created the sequence row first; retry under its row lock.
+            }
+        }
+        throw new SQLException("Could not allocate a unique record number. Please try saving again.");
+    }
+
+    private int nextExistingSequence(String prefix, String table, String col, int year) throws SQLException {
+        int maxSequence = 0;
+        String marker = prefix + "-" + year + "-";
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT " + col + " FROM " + table + " WHERE " + col + " LIKE ?")) {
+            ps.setString(1, marker + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String value = rs.getString(1);
+                    if (value == null || !value.startsWith(marker)) continue;
+                    try { maxSequence = Math.max(maxSequence, Integer.parseInt(value.substring(marker.length()))); }
+                    catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+        return maxSequence + 1;
     }
 
     // ── Athlete ───────────────────────────────────────────────────────────────
@@ -202,6 +284,10 @@ public class DatabaseService {
     }
 
     public int saveAthlete(Athlete a) throws SQLException {
+        return inTransaction(() -> saveAthleteInternal(a));
+    }
+
+    private int saveAthleteInternal(Athlete a) throws SQLException {
         if (a.getAthleteId() == null || a.getAthleteId().isBlank())
             a.setAthleteId(generateId("ATH", "athletes", "athlete_id"));
         if (a.getId() == 0) {
@@ -253,7 +339,7 @@ public class DatabaseService {
     public int saveAthleteWithRecords(Athlete athlete,
             List<Athlete.PalaroPrevious> records, List<Athlete.LowerMeet> meets) throws SQLException {
         return inTransaction(() -> {
-            int id = saveAthlete(athlete);
+            int id = saveAthleteInternal(athlete);
             saveAthletePalaroRecords(id, records);
             saveAthleteLowerMeets(id, meets);
             return id;
@@ -769,7 +855,7 @@ public class DatabaseService {
 
     private void createUserTable() throws SQLException {
         connection.createStatement().execute(
-            "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "CREATE TABLE IF NOT EXISTS users (id " + idColumn() + ", " +
             "username TEXT UNIQUE, password_hash TEXT, role TEXT, full_name TEXT, active INTEGER DEFAULT 1, " +
             "must_change_password INTEGER DEFAULT 0)");
         if (!hasColumn("users", "must_change_password")) {
@@ -779,19 +865,21 @@ public class DatabaseService {
     }
 
     private boolean hasColumn(String table, String column) throws SQLException {
-        try (Statement st = connection.createStatement();
-             ResultSet rs = st.executeQuery("PRAGMA table_info(" + table + ")")) {
+        try (ResultSet rs = connection.getMetaData().getColumns(null, null, table, column)) {
             while (rs.next()) {
-                if (column.equalsIgnoreCase(rs.getString("name"))) return true;
+                if (column.equalsIgnoreCase(rs.getString("COLUMN_NAME"))) return true;
             }
-            return false;
+        }
+        try (ResultSet rs = connection.getMetaData().getColumns(null, null,
+                table.toUpperCase(), column.toUpperCase())) {
+            return rs.next();
         }
     }
 
     public boolean hasUsers() throws SQLException {
         try (Statement st = connection.createStatement();
-             ResultSet rs = st.executeQuery("SELECT EXISTS(SELECT 1 FROM users LIMIT 1)")) {
-            return rs.next() && rs.getInt(1) == 1;
+             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM users")) {
+            return rs.next() && rs.getInt(1) > 0;
         }
     }
 

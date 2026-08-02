@@ -6,6 +6,7 @@ import com.sdms.model.Official;
 import com.sdms.service.DatabaseService;
 import com.sdms.service.LocalScannerService;
 import com.sdms.service.OnlineVerificationService;
+import com.sdms.sharing.SharedAssetService;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.qrcode.QRCodeWriter;
@@ -381,7 +382,7 @@ public class QRScanController {
         if (photoPath == null || photoPath.isBlank()) return;
 
         try {
-            Path path = Path.of(photoPath);
+            Path path = SharedAssetService.localPath(photoPath);
             if (!Files.isRegularFile(path)) return;
             imgPhoto.setImage(new Image(path.toUri().toString(), false));
             lblNoPhoto.setVisible(false);

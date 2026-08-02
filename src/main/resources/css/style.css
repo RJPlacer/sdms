@@ -99,6 +99,12 @@
     -fx-font-size: 10px;
 }
 
+.login-connection {
+    -fx-text-fill: #14799A;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
 /* Sidebar and navigation */
 .sidebar {
     -fx-background-color: #0A2235;
@@ -171,6 +177,90 @@
 .sidebar-user-role {
     -fx-text-fill: #79B9CF;
     -fx-font-size: 10px;
+}
+
+.sidebar-connection {
+    -fx-text-fill: #83D2E7;
+    -fx-font-size: 9px;
+    -fx-padding: 1 0 2 0;
+}
+
+/* Multi-PC sharing */
+.sharing-header {
+    -fx-background-color: linear-gradient(to right, #173F66, #145E7C);
+}
+
+.sharing-title {
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.sharing-subtitle {
+    -fx-text-fill: #C8EAF3;
+    -fx-font-size: 12px;
+}
+
+.sharing-status-card {
+    -fx-background-color: #EAF5FA;
+    -fx-background-radius: 10px;
+    -fx-border-color: #BADBE7;
+    -fx-border-radius: 10px;
+}
+
+.sharing-mode {
+    -fx-text-fill: #123E64;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.sharing-value {
+    -fx-text-fill: #155F7C;
+    -fx-font-family: "Consolas";
+    -fx-font-weight: bold;
+}
+
+.sharing-code {
+    -fx-text-fill: #0D7698;
+    -fx-font-family: "Consolas";
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.sharing-card {
+    -fx-background-color: white;
+    -fx-background-radius: 10px;
+    -fx-border-color: #D7E3EB;
+    -fx-border-radius: 10px;
+    -fx-effect: dropshadow(gaussian, rgba(19, 53, 79, 0.07), 9, 0, 0, 2);
+}
+
+.sharing-card-title {
+    -fx-text-fill: #173F66;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.sharing-card-copy {
+    -fx-text-fill: #617489;
+    -fx-font-size: 11px;
+}
+
+.sharing-message-ok,
+.sharing-message-error {
+    -fx-padding: 8 10;
+    -fx-background-radius: 7px;
+    -fx-font-size: 11px;
+}
+
+.sharing-message-ok {
+    -fx-text-fill: #176B52;
+    -fx-background-color: #E7F6F0;
+}
+
+.sharing-message-error {
+    -fx-text-fill: #A43B45;
+    -fx-background-color: #FCECEF;
 }
 
 .sidebar-link-btn {

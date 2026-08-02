@@ -14,7 +14,8 @@ SDMS is a JavaFX desktop system for managing Palarong Pambansa delegation data, 
 - ID card and report PDF export
 - Batch ID export and school-based delegation rosters
 
-The system uses SQLite for local persistence and runs as a standalone Windows application via jpackage installer.
+The system uses SQLite for single-computer persistence and H2 client/server mode
+for optional same-Wi-Fi sharing. It runs as a Windows application via jpackage.
 
 ## 2. Technology Stack
 
@@ -22,6 +23,7 @@ The system uses SQLite for local persistence and runs as a standalone Windows ap
 - JavaFX 21.0.2
 - Maven
 - SQLite (xerial sqlite-jdbc)
+- H2 embedded TCP database (multi-PC mode)
 - ZXing (QR generation)
 - OpenPDF (PDF generation)
 - ControlsFX
@@ -149,19 +151,32 @@ Permission model examples:
 - Delete requires canDelete
 - User Management button is visible to admins only
 
+### 4.10 Multi-PC Sharing
+
+- LOCAL mode keeps the existing SQLite behavior.
+- HOST mode starts the H2 database, pairing service, asset service, and UDP discovery.
+- CLIENT mode connects directly to the host's H2 database after six-digit pairing.
+- Existing SQLite tables are migrated automatically when HOST mode is first enabled.
+- Shared photos and QR images are stored on the host and retrieved through an authenticated local HTTP endpoint.
+- H2 row locking and database transactions support concurrent encoders.
+- Host backups use an H2 SQL script plus shared image assets in one `.atbackup` file.
+
 ## 5. Data Storage and Runtime Paths
 
 SDMS now uses writable per-user application paths through AppPaths.
 
 Windows base folder:
-- %LOCALAPPDATA%/SDMS
+- `%LOCALAPPDATA%/Athlete Track`
 
 Important files/folders:
-- Database: %LOCALAPPDATA%/SDMS/sdms.db
-- Photos: %LOCALAPPDATA%/SDMS/data/photos
-- QR codes: %LOCALAPPDATA%/SDMS/data/qrcodes
-- PDF exports: %LOCALAPPDATA%/SDMS/data/exports
-- Startup logs: %LOCALAPPDATA%/SDMS/logs/startup-error.log
+- Local database: `<app-data>/sdms.db`
+- Local photos and QR codes: `<app-data>/data`
+- Shared database: `<app-data>/shared-database`
+- Shared photos and QR codes: `<app-data>/shared-assets`
+- Sharing settings: `<app-data>/sharing.properties`
+- Backups: `<app-data>/backups`
+- PDF exports: `<app-data>/data/exports`
+- Startup logs: `<app-data>/logs/startup-error.log`
 
 This avoids write failures in installed EXE environments.
 
