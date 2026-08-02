@@ -40,13 +40,30 @@ mvn -DskipTests package
 
 Output:
 
-- target/sports-delegation-ms-1.2.0-shaded.jar
+- target/sports-delegation-ms-1.3.0-shaded.jar
 
 Run the packaged JAR with JDK 17+:
 
 ```bash
-java -jar target/sports-delegation-ms-1.2.0-shaded.jar
+java -jar target/sports-delegation-ms-1.3.0-shaded.jar
 ```
+
+## Local Android QR Scanner
+
+The companion app in `android-scanner/` replaces a physical USB QR scanner without
+depending on a hosted website or developer account. Install the generated APK on an
+Android phone, connect the phone and computer to the same Wi-Fi (or connect the
+computer to the phone's hotspot), then:
+
+1. Open **QR Scanner** in Athlete Track and click **Connect Local Phone**.
+2. Open **Athlete Track Scanner** on Android and scan the pairing QR.
+3. Scan printed Athlete Track QR codes in the Android app. Each decoded payload is
+   sent directly to the paired desktop and loaded automatically.
+
+Only QR text crosses the local network. A random pairing token restricts the desktop
+listener to the paired phone, and closing the QR Scanner window stops the listener.
+The first connection may trigger Windows Firewall; allow access on **Private
+networks** only.
 
 ## Mobile QR Verification
 
@@ -236,7 +253,7 @@ build-installer.cmd -SkipBuild -CleanOutput
 
 Installer output:
 
-- dist/Athlete Track-1.2.0.exe
+- dist/Athlete Track-1.3.0.exe
 
 ### Updating an installed copy
 
@@ -244,10 +261,10 @@ The Windows package now has a permanent upgrade identity. To publish a newer
 release, choose a version greater than the installed version and run:
 
 ```powershell
-build-installer.cmd -AppVersion 1.2.0
+build-installer.cmd -AppVersion 1.3.0
 ```
 
-Give users the resulting `Athlete Track-1.2.0.exe`. They should close Athlete
+Give users the resulting `Athlete Track-1.3.0.exe`. They should close Athlete
 Track and run the new installer normally. Windows replaces the installed
 program in place; users do not uninstall the old version first.
 
@@ -256,7 +273,7 @@ are stored under the user's local application-data directory, outside the
 installation directory, so an in-place upgrade preserves them.
 
 Version numbers must increase and use three numeric parts, such as `1.1.0`,
-`1.1.1`, then `1.2.0`. The script passes the same version to Maven, the app's
+`1.2.0`, then `1.3.0`. The script passes the same version to Maven, the app's
 About screen, and the Windows installer.
 
 ## Current Runtime Data Paths (Windows)

@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.AthleteTrackScanner" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#1A66AD</item>
+        <item name="android:navigationBarColor">#08192B</item>
+        <item name="android:statusBarColor">#14375D</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@null</item>
+    </style>
+</resources>
