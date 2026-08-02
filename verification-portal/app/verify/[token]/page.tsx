@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getVerificationRecord } from "../../../db/verification";
 
 export const dynamic = "force-dynamic";
@@ -46,8 +47,15 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
           {active ? "Verified active record" : "Record revoked or inactive"}
         </div>
         <div className="profile">
-          {record.photo_key ? (
-            <img className="profile-photo" src={`/photo/${token}`} alt={`ID photo of ${record.full_name}`} />
+          {active && record.photo_key ? (
+            <Image
+              className="profile-photo"
+              src={`/photo/${token}`}
+              alt={`ID photo of ${record.full_name}`}
+              width={112}
+              height={132}
+              unoptimized
+            />
           ) : (
             <div className="photo-placeholder">No public photo</div>
           )}

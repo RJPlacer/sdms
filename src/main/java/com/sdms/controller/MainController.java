@@ -46,7 +46,7 @@ public class MainController {
 
     @FXML private void onGlobalSearch()    { openDialog("/fxml/GlobalSearch.fxml",    "Global Search",         800, 500); }
     @FXML private void onBatchPrint()      { openDialog("/fxml/BatchPrint.fxml",      "Batch ID Card Export",  500, 420); }
-    @FXML private void onScanQr()          { openDialog("/fxml/QRScan.fxml",          "Scan QR",               720, 460); }
+    @FXML private void onScanQr()          { openDialog("/fxml/QRScan.fxml",          "Scan QR",               900, 720); }
     @FXML private void onUserManagement()  {
         if (!SessionManager.isAdmin()) {
             new Alert(Alert.AlertType.ERROR, "Administrator permission is required.").showAndWait();
@@ -82,7 +82,7 @@ public class MainController {
                 scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
                 Stage stage = (Stage) btnDashboard.getScene().getWindow();
                 stage.setScene(scene);
-                stage.setWidth(520); stage.setHeight(520);
+                stage.setWidth(520); stage.setHeight(680);
                 stage.centerOnScreen();
                 stage.setTitle(AppInfo.appName() + " - Login (" + AppInfo.displayVersion() + ")");
             } catch (IOException e) {

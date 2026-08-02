@@ -51,10 +51,9 @@ Entry points:
 - Session state management for current user
 - Change password dialog for logged-in user
 
-Default first-run account:
-- Username: admin
-- Password: admin123
-- Role: ADMIN
+On first run, the login screen creates the initial administrator account.
+The administrator chooses a unique username, full name, and password of at
+least 12 characters. No shared default credential is created.
 
 ### 4.2 Dashboard
 

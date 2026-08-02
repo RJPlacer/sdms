@@ -2,10 +2,14 @@ package com.sdms.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sdms.model.Athlete;
 import com.sdms.model.Official;
+import com.sdms.model.User;
+import com.sdms.util.PasswordUtil;
 import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.util.List;
@@ -20,6 +24,16 @@ class DatabaseServiceIntegrationTest {
         DatabaseService database = DatabaseService.getInstance();
         database.initializeDatabase();
         try {
+            assertFalse(database.hasUsers(), "A new database must not create a shared default account");
+            User administrator = new User();
+            administrator.setUsername("test-admin");
+            administrator.setFullName("Test Administrator");
+            administrator.setPasswordHash(PasswordUtil.hash("strong-test-password"));
+            administrator.setRole("ADMIN");
+            administrator.setActive(true);
+            database.saveUser(administrator);
+            assertTrue(database.hasUsers());
+
             Athlete first = athlete("First");
             Athlete second = athlete("Second");
             Athlete third = athlete("Third");

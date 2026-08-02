@@ -9,7 +9,9 @@ export async function GET(_request: Request, context: { params: Promise<{ token:
   }
 
   const record = await getVerificationRecord(token);
-  if (!record?.photo_key) return new Response("Not found", { status: 404 });
+  if (!record?.photo_key || record.status !== "ACTIVE") {
+    return new Response("Not found", { status: 404 });
+  }
 
   const image = await runtimeEnv().PHOTOS.get(record.photo_key);
   if (!image) return new Response("Not found", { status: 404 });
@@ -17,7 +19,7 @@ export async function GET(_request: Request, context: { params: Promise<{ token:
   const headers = new Headers();
   image.writeHttpMetadata(headers);
   headers.set("etag", image.httpEtag);
-  headers.set("cache-control", "public, max-age=3600");
+  headers.set("cache-control", "no-store");
   headers.set("x-content-type-options", "nosniff");
   return new Response(image.body, { headers });
 }

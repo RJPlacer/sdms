@@ -47,7 +47,7 @@ public class DatabaseService {
             connection.createStatement().execute("PRAGMA foreign_keys = ON");
             createTables();
             cleanupOrphanedChildren();
-            ensureDefaultAdmin();
+            createUserTable();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to open database: " + e.getMessage(), e);
         }
@@ -788,28 +788,10 @@ public class DatabaseService {
         }
     }
 
-    public void ensureDefaultAdmin() throws SQLException {
-        createUserTable();
-        int userCount;
+    public boolean hasUsers() throws SQLException {
         try (Statement st = connection.createStatement();
-             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM users")) {
-            userCount = rs.next() ? rs.getInt(1) : 0;
-        }
-        if (userCount == 0) {
-            com.sdms.model.User admin = new com.sdms.model.User();
-            admin.setUsername("admin");
-            admin.setPasswordHash(com.sdms.util.PasswordUtil.hash("admin123"));
-            admin.setRole("ADMIN");
-            admin.setFullName("System Administrator");
-            admin.setActive(true);
-            admin.setMustChangePassword(true);
-            saveUser(admin);
-        } else {
-            User admin = findUserByUsername("admin");
-            if (admin != null && com.sdms.util.PasswordUtil.verify("admin123", admin.getPasswordHash())) {
-                admin.setMustChangePassword(true);
-                saveUser(admin);
-            }
+             ResultSet rs = st.executeQuery("SELECT EXISTS(SELECT 1 FROM users LIMIT 1)")) {
+            return rs.next() && rs.getInt(1) == 1;
         }
     }
 

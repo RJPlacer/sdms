@@ -6,7 +6,7 @@
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sdms.controller.QRScanController"
-      prefWidth="800" prefHeight="620" styleClass="form-root" spacing="10">
+      prefWidth="900" prefHeight="720" styleClass="form-root" spacing="10">
 
     <HBox styleClass="form-header" alignment="CENTER_LEFT" spacing="12">
         <padding><Insets top="14" bottom="14" left="20" right="20"/></padding>
@@ -16,8 +16,25 @@
     </HBox>
 
     <VBox spacing="10" style="-fx-padding: 12 20 8 20;" VBox.vgrow="ALWAYS">
-        <Label text="Connect a USB scanner, place the cursor in Scan Input, then scan. Most scanners behave like a keyboard and press Enter automatically."
+        <Label text="Use an Android phone over the Internet, a USB scanner, or paste QR text below. Phone scans appear automatically in this window."
                wrapText="true" styleClass="hint-label"/>
+
+        <HBox spacing="16" alignment="CENTER_LEFT"
+              style="-fx-padding: 12; -fx-background-color: #eef4fb; -fx-border-color: #cbd9e8; -fx-background-radius: 8; -fx-border-radius: 8;">
+            <VBox spacing="8" HBox.hgrow="ALWAYS">
+                <Label text="Android Phone Scanner" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e3a5f;"/>
+                <Label fx:id="lblPhoneStatus" text="Connect an Android phone to scan over the Internet."
+                       wrapText="true" style="-fx-text-fill: #475569;"/>
+                <HBox spacing="8">
+                    <Button fx:id="btnConnectPhone" text="Connect Phone" onAction="#onConnectPhone" styleClass="btn-primary"/>
+                    <Button fx:id="btnDisconnectPhone" text="Disconnect" onAction="#onDisconnectPhone" styleClass="btn-secondary" disable="true"/>
+                </HBox>
+                <Label text="The pairing session expires after 15 minutes. Only decoded QR text is relayed."
+                       wrapText="true" style="-fx-font-size: 11px; -fx-text-fill: #64748b;"/>
+            </VBox>
+            <ImageView fx:id="imgPairingQr" fitWidth="132" fitHeight="132" preserveRatio="true"
+                       visible="false" managed="false" smooth="false"/>
+        </HBox>
 
         <HBox spacing="8" alignment="CENTER_LEFT">
             <Label text="Scan Input" minWidth="80"/>

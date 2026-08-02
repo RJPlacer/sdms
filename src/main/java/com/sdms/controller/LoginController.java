@@ -21,22 +21,38 @@ import java.net.URI;
 public class LoginController {
 
     @FXML private TextField txtUsername;
+    @FXML private TextField txtFullName;
     @FXML private PasswordField txtPassword;
-    @FXML private Label lblError;
+    @FXML private PasswordField txtConfirm;
+    @FXML private Label lblError, lblSetup, lblFullName, lblConfirm;
     @FXML private Label lblVersion;
     @FXML private Button btnLogin;
+    private boolean firstRun;
 
     @FXML public void initialize() {
         lblError.setVisible(false);
         if (lblVersion != null) {
             lblVersion.setText("Version " + AppInfo.version());
         }
+        try {
+            firstRun = !DatabaseService.getInstance().hasUsers();
+            configureMode();
+        } catch (Exception e) {
+            showError("Could not check the user database.");
+            btnLogin.setDisable(true);
+        }
         // Allow Enter key to trigger login
         txtPassword.setOnKeyPressed(e -> { if (e.getCode() == KeyCode.ENTER) onLogin(); });
+        txtConfirm.setOnKeyPressed(e -> { if (e.getCode() == KeyCode.ENTER) onLogin(); });
         txtUsername.setOnKeyPressed(e -> { if (e.getCode() == KeyCode.ENTER) txtPassword.requestFocus(); });
     }
 
     @FXML private void onLogin() {
+        if (firstRun) {
+            createInitialAdministrator();
+            return;
+        }
+
         String username = txtUsername.getText().trim();
         String password = txtPassword.getText();
 
@@ -71,6 +87,67 @@ public class LoginController {
             openMainWindow();
         } catch (Exception e) {
             showError("Login error: " + e.getMessage());
+        }
+    }
+
+    private void configureMode() {
+        lblSetup.setVisible(firstRun);
+        lblSetup.setManaged(firstRun);
+        lblFullName.setVisible(firstRun);
+        lblFullName.setManaged(firstRun);
+        txtFullName.setVisible(firstRun);
+        txtFullName.setManaged(firstRun);
+        lblConfirm.setVisible(firstRun);
+        lblConfirm.setManaged(firstRun);
+        txtConfirm.setVisible(firstRun);
+        txtConfirm.setManaged(firstRun);
+        btnLogin.setText(firstRun ? "Create Administrator" : "Log In");
+        txtUsername.setPromptText(firstRun ? "Choose an administrator username" : "Enter username");
+        txtPassword.setPromptText(firstRun ? "Choose a password (12+ characters)" : "Enter password");
+    }
+
+    private void createInitialAdministrator() {
+        String username = txtUsername.getText().trim();
+        String fullName = txtFullName.getText().trim();
+        String password = txtPassword.getText();
+        String confirm = txtConfirm.getText();
+
+        if (!username.matches("[A-Za-z0-9._-]{3,32}")) {
+            showError("Username must be 3-32 letters, numbers, dots, underscores, or hyphens.");
+            return;
+        }
+        if (fullName.isBlank()) {
+            showError("Please enter the administrator's full name.");
+            return;
+        }
+        if (password.length() < 12) {
+            showError("Administrator password must be at least 12 characters.");
+            return;
+        }
+        if (!password.equals(confirm)) {
+            showError("Passwords do not match.");
+            return;
+        }
+
+        try {
+            if (DatabaseService.getInstance().hasUsers()) {
+                firstRun = false;
+                configureMode();
+                showError("Setup is already complete. Please log in.");
+                return;
+            }
+            User admin = new User();
+            admin.setUsername(username);
+            admin.setFullName(fullName);
+            admin.setPasswordHash(PasswordUtil.hash(password));
+            admin.setRole("ADMIN");
+            admin.setActive(true);
+            admin.setMustChangePassword(false);
+            DatabaseService.getInstance().saveUser(admin);
+            SessionManager.login(admin);
+            openMainWindow();
+        } catch (Exception e) {
+            showError("Could not create the administrator account.");
         }
     }
 

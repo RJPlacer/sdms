@@ -26,14 +26,28 @@
         <Separator/>
 
         <VBox spacing="10" maxWidth="280">
+            <Label fx:id="lblSetup"
+                   text="First-time setup: create the administrator account."
+                   wrapText="true" maxWidth="280"
+                   style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #1E6FA8;"/>
             <Label text="Username"
                    style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
             <TextField fx:id="txtUsername" promptText="Enter username"
                        style="-fx-font-size: 13px; -fx-padding: 8 12 8 12; -fx-border-color: #CBD5E1; -fx-border-radius: 6; -fx-background-radius: 6;"/>
 
+            <Label fx:id="lblFullName" text="Full name"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
+            <TextField fx:id="txtFullName" promptText="Administrator full name"
+                       style="-fx-font-size: 13px; -fx-padding: 8 12 8 12; -fx-border-color: #CBD5E1; -fx-border-radius: 6; -fx-background-radius: 6;"/>
+
             <Label text="Password"
                    style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
             <PasswordField fx:id="txtPassword" promptText="Enter password"
+                           style="-fx-font-size: 13px; -fx-padding: 8 12 8 12; -fx-border-color: #CBD5E1; -fx-border-radius: 6; -fx-background-radius: 6;"/>
+
+            <Label fx:id="lblConfirm" text="Confirm password"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
+            <PasswordField fx:id="txtConfirm" promptText="Re-enter password"
                            style="-fx-font-size: 13px; -fx-padding: 8 12 8 12; -fx-border-color: #CBD5E1; -fx-border-radius: 6; -fx-background-radius: 6;"/>
 
             <Label fx:id="lblError" text="" wrapText="true" maxWidth="280"
@@ -44,8 +58,6 @@
                     style="-fx-background-color: #1E6FA8; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;"/>
         </VBox>
 
-        <Label text="Default: admin / admin123"
-               style="-fx-font-size: 10px; -fx-text-fill: #94A3B8;"/>
         <Label fx:id="lblVersion" text="Version"
                style="-fx-font-size: 10px; -fx-text-fill: #94A3B8;"/>
     </VBox>

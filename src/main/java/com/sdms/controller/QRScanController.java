@@ -5,7 +5,14 @@ import com.sdms.model.Coach;
 import com.sdms.model.Official;
 import com.sdms.service.DatabaseService;
 import com.sdms.service.OnlineVerificationService;
+import com.sdms.service.ScannerRelayService;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.qrcode.QRCodeWriter;
+import javafx.application.Platform;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -16,6 +23,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,6 +31,11 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,10 +47,123 @@ public class QRScanController {
     @FXML private ImageView imgPhoto;
     @FXML private Label lblNoPhoto;
     @FXML private VBox detailsContainer;
+    @FXML private Button btnConnectPhone;
+    @FXML private Button btnDisconnectPhone;
+    @FXML private Label lblPhoneStatus;
+    @FXML private ImageView imgPairingQr;
+
+    private final ScheduledExecutorService relayExecutor = Executors.newSingleThreadScheduledExecutor(task -> {
+        Thread thread = new Thread(task, "scanner-relay");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private final AtomicBoolean pollInProgress = new AtomicBoolean();
+    private volatile ScannerRelayService.RelaySession relaySession;
+    private ScheduledFuture<?> pollingTask;
 
     @FXML public void initialize() {
         clearResult();
+        setPhoneDisconnected("Connect an Android phone to scan over the Internet.");
         txtScan.requestFocus();
+        Platform.runLater(() -> txtScan.getScene().getWindow().addEventHandler(
+            WindowEvent.WINDOW_HIDDEN, event -> shutdownRelay()));
+    }
+
+    @FXML private void onConnectPhone() {
+        btnConnectPhone.setDisable(true);
+        lblPhoneStatus.setText("Creating a secure 15-minute scanner session…");
+        relayExecutor.execute(() -> {
+            try {
+                ScannerRelayService.RelaySession session = ScannerRelayService.createSession();
+                relaySession = session;
+                Image pairingQr = createPairingQr(session.pairUrl().toString());
+                Platform.runLater(() -> {
+                    imgPairingQr.setImage(pairingQr);
+                    imgPairingQr.setVisible(true);
+                    imgPairingQr.setManaged(true);
+                    btnDisconnectPhone.setDisable(false);
+                    lblPhoneStatus.setText("Scan this pairing QR with Android, then tap Connect on the phone.");
+                });
+                pollingTask = relayExecutor.scheduleWithFixedDelay(this::pollRelay, 0, 750, TimeUnit.MILLISECONDS);
+            } catch (Exception error) {
+                Platform.runLater(() -> setPhoneDisconnected(cleanError(error)));
+            }
+        });
+    }
+
+    @FXML private void onDisconnectPhone() {
+        disconnectPhone(false);
+    }
+
+    private void pollRelay() {
+        ScannerRelayService.RelaySession session = relaySession;
+        if (session == null || !pollInProgress.compareAndSet(false, true)) return;
+        try {
+            ScannerRelayService.PollResult result = ScannerRelayService.poll(session);
+            Platform.runLater(() -> {
+                if (relaySession != session) return;
+                lblPhoneStatus.setText(result.paired()
+                    ? "Phone connected. Waiting for a QR scan…"
+                    : "Waiting for the Android phone to connect…");
+                result.payload().ifPresent(payload -> {
+                    txtScan.setText(payload);
+                    onScan();
+                    lblPhoneStatus.setText("Scan received from phone. Ready for the next QR code.");
+                });
+            });
+        } catch (Exception error) {
+            Platform.runLater(() -> {
+                if (relaySession == session) disconnectPhoneWithMessage(cleanError(error));
+            });
+        } finally {
+            pollInProgress.set(false);
+        }
+    }
+
+    private Image createPairingQr(String value) throws Exception {
+        var matrix = new QRCodeWriter().encode(value, BarcodeFormat.QR_CODE, 210, 210);
+        return SwingFXUtils.toFXImage(MatrixToImageWriter.toBufferedImage(matrix), null);
+    }
+
+    private void disconnectPhone(boolean shuttingDown) {
+        ScannerRelayService.RelaySession session = relaySession;
+        relaySession = null;
+        if (pollingTask != null) pollingTask.cancel(false);
+        pollingTask = null;
+        if (!shuttingDown) setPhoneDisconnected("Phone scanner disconnected.");
+        if (session != null && !relayExecutor.isShutdown()) {
+            relayExecutor.execute(() -> {
+                try {
+                    ScannerRelayService.disconnect(session);
+                } catch (Exception ignored) {
+                    // The session expires automatically if the network is unavailable.
+                }
+            });
+        }
+    }
+
+    private void disconnectPhoneWithMessage(String message) {
+        disconnectPhone(false);
+        lblPhoneStatus.setText(message);
+    }
+
+    private void setPhoneDisconnected(String message) {
+        imgPairingQr.setImage(null);
+        imgPairingQr.setVisible(false);
+        imgPairingQr.setManaged(false);
+        btnConnectPhone.setDisable(false);
+        btnDisconnectPhone.setDisable(true);
+        lblPhoneStatus.setText(message);
+    }
+
+    private String cleanError(Exception error) {
+        String message = error.getMessage();
+        return message == null || message.isBlank() ? "Phone scanner connection failed." : message;
+    }
+
+    private void shutdownRelay() {
+        disconnectPhone(true);
+        relayExecutor.shutdown();
     }
 
     @FXML private void onScan() {
@@ -93,6 +219,7 @@ public class QRScanController {
     }
 
     @FXML private void onClose() {
+        shutdownRelay();
         ((Stage) txtScan.getScene().getWindow()).close();
     }
 

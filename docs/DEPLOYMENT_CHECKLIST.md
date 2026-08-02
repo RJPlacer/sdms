@@ -7,12 +7,14 @@ Use this checklist when preparing and installing SDMS in a school/division offic
 - JDK 17 installed
 - Maven installed
 - jpackage available
+- WiX Toolset CLI 5.0.2 installed
 - Project builds successfully
 
 Verification commands:
 - java -version
 - mvn -v
 - jpackage --version
+- wix --version
 
 ## 2. Pre-Build Checks
 
@@ -20,27 +22,35 @@ Verification commands:
   - src/main/resources/images/app-logo.ico
 - Confirm launcher class is AppLauncher in packaging settings
 - Confirm shaded JAR builds:
-  - target/sports-delegation-ms-1.0-SNAPSHOT-shaded.jar
+  - target/sports-delegation-ms-1.2.0-shaded.jar
 
 ## 3. Build Installer
 
 Recommended command:
-- ./build-installer.ps1 -CleanOutput
+- build-installer.cmd -CleanOutput
 
 Expected output:
-- dist/SDMS-1.0.exe
+- dist/Athlete Track-1.2.0.exe
 
-## 4. Install Validation (Clean PC)
+For later releases, increase the three-part version:
+- build-installer.cmd -AppVersion 1.2.0
+
+Do not change the upgrade UUID in `build-installer.ps1`. Users can close the
+app and run the newer installer directly over the installed version. Their
+database and files remain in the local application-data directory.
+
+## 4. Install and Upgrade Validation
 
 1. Run dist/SDMS-1.0.exe.
 2. Complete installation.
 3. Launch SDMS from Start menu or desktop shortcut.
 4. Verify login screen appears.
+5. Install a newer version over the existing version without uninstalling.
+6. Verify the app version changed and existing records are still present.
 
 ## 5. Post-Install Functional Smoke Test
 
-- Login using default admin (first run only):
-  - admin / admin123
+- Complete first-time setup by creating a unique administrator account
 - Open each module:
   - Dashboard, Athletes, Officials, Coaches, Equipment
 - Create one test record in each core module
@@ -79,7 +89,7 @@ If app does not open:
 
 ## 9. Security and Operations
 
-- Change default admin password immediately after deployment.
+- Use a unique administrator password during first-time setup.
 - Create role-specific user accounts.
 - Deactivate unused accounts.
 - Restrict installer distribution to authorized staff only.
@@ -87,7 +97,7 @@ If app does not open:
 ## 10. Release Handover Package
 
 Include these files for delivery:
-- dist/SDMS-1.0.exe
+- dist/Athlete Track-1.2.0.exe
 - docs/USER_MANUAL.md
 - docs/DEPLOYMENT_CHECKLIST.md
 - docs/SYSTEM_DOCUMENTATION.md

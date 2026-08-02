@@ -30,7 +30,7 @@ public final class OnlineVerificationService {
     private OnlineVerificationService() {}
 
     public static boolean isConfigured() {
-        return !baseUrl().isBlank() && !apiKey().isBlank();
+        return !configuredBaseUrl().isBlank() && !configuredApiKey().isBlank();
     }
 
     public static Optional<String> publishAthlete(Athlete athlete)
@@ -99,9 +99,9 @@ public final class OnlineVerificationService {
             "}";
 
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(baseUrl() + "/api/records"))
+            .uri(URI.create(configuredBaseUrl() + "/api/records"))
             .timeout(Duration.ofSeconds(25))
-            .header("Authorization", "Bearer " + apiKey())
+            .header("Authorization", "Bearer " + configuredApiKey())
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(json))
             .build();
@@ -156,15 +156,15 @@ public final class OnlineVerificationService {
     }
 
     private static String verificationUrl(String token) {
-        return baseUrl() + "/verify/" + token;
+        return configuredBaseUrl() + "/verify/" + token;
     }
 
-    private static String baseUrl() {
+    static String configuredBaseUrl() {
         String value = setting("sdms.verification.baseUrl", "SDMS_VERIFICATION_BASE_URL", "baseUrl");
         return value.replaceAll("/+$", "");
     }
 
-    private static String apiKey() {
+    static String configuredApiKey() {
         return setting("sdms.verification.apiKey", "SDMS_VERIFICATION_API_KEY", "apiKey");
     }
 

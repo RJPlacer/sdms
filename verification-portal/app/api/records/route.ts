@@ -1,6 +1,8 @@
 import { runtimeEnv, upsertVerificationRecord } from "../../../db/verification";
 
 export const dynamic = "force-dynamic";
+const MAX_PHOTO_BYTES = 2_000_000;
+const MAX_REQUEST_BYTES = 3_000_000;
 
 type SyncPayload = {
   token?: string;
@@ -14,6 +16,12 @@ type SyncPayload = {
   photoBase64?: string;
   photoContentType?: string;
 };
+
+class RequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
 
 function authorized(request: Request) {
   const configured = runtimeEnv().SYNC_API_KEY ?? "";
@@ -30,13 +38,66 @@ function clean(value: string | undefined, limit: number) {
   return (value ?? "").trim().slice(0, limit);
 }
 
+async function readPayload(request: Request): Promise<SyncPayload> {
+  const declaredLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_REQUEST_BYTES) {
+    throw new RequestError("Request exceeds the 3 MB limit", 413);
+  }
+  if (!request.body) throw new RequestError("A JSON request body is required", 400);
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_REQUEST_BYTES) {
+      await reader.cancel();
+      throw new RequestError("Request exceeds the 3 MB limit", 413);
+    }
+    chunks.push(value);
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  try {
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as SyncPayload;
+  } catch {
+    throw new RequestError("Request body must be valid UTF-8 JSON", 400);
+  }
+}
+
+function decodePhoto(value: string): Uint8Array {
+  const base64 = value.trim();
+  const decodedSize =
+    (base64.length / 4) * 3 -
+    (base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0);
+  if (
+    base64.length % 4 !== 0 ||
+    !/^[A-Za-z0-9+/]*={0,2}$/.test(base64) ||
+    decodedSize > MAX_PHOTO_BYTES
+  ) {
+    throw new RequestError("Photo exceeds the 2 MB limit or is not valid Base64", 413);
+  }
+  try {
+    return Uint8Array.from(atob(base64), character => character.charCodeAt(0));
+  } catch {
+    throw new RequestError("Photo is not valid Base64", 400);
+  }
+}
+
 export async function POST(request: Request) {
   try {
     if (!authorized(request)) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = await request.json() as SyncPayload;
+    const payload = await readPayload(request);
     const token = clean(payload.token, 128);
     const personId = clean(payload.personId, 64);
     const personType = clean(payload.personType, 24).toUpperCase();
@@ -55,10 +116,7 @@ export async function POST(request: Request) {
       if (!["image/jpeg", "image/png"].includes(contentType)) {
         return Response.json({ error: "Photo must be JPEG or PNG" }, { status: 400 });
       }
-      const bytes = Uint8Array.from(atob(payload.photoBase64), character => character.charCodeAt(0));
-      if (bytes.byteLength > 2_000_000) {
-        return Response.json({ error: "Photo exceeds the 2 MB limit" }, { status: 413 });
-      }
+      const bytes = decodePhoto(payload.photoBase64);
       photoKey = `verification/${token}`;
       await runtimeEnv().PHOTOS.put(photoKey, bytes, {
         httpMetadata: { contentType },
@@ -82,7 +140,10 @@ export async function POST(request: Request) {
       verificationPath: `/verify/${token}`,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected synchronization error";
-    return Response.json({ error: message }, { status: 500 });
+    if (error instanceof RequestError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
+    console.error("Verification synchronization failed", error);
+    return Response.json({ error: "Synchronization failed" }, { status: 500 });
   }
 }

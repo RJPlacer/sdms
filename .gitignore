@@ -16,6 +16,7 @@ verification.properties
 
 # Portal dependencies and generated output
 verification-portal/node_modules/
+verification-portal/node_modules.zip
 verification-portal/dist/
 verification-portal/.vinext/
 verification-portal/.wrangler/

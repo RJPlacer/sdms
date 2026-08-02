@@ -28,8 +28,9 @@ Do not launch `MainApp` directly or open the plain/original JAR. The Maven
 command supplies JavaFX on the runtime path and starts the application through
 `AppLauncher`.
 
-On a new database, sign in with `admin` / `admin123`. The application requires
-the temporary password to be changed before the main window opens.
+On a new database, the login screen opens in first-time setup mode. Create the
+initial administrator account with a unique username and a password of at least
+12 characters before entering the main window.
 
 ### Build shaded JAR
 
@@ -39,12 +40,12 @@ mvn -DskipTests package
 
 Output:
 
-- target/sports-delegation-ms-1.0-SNAPSHOT-shaded.jar
+- target/sports-delegation-ms-1.2.0-shaded.jar
 
 Run the packaged JAR with JDK 17+:
 
 ```bash
-java -jar target/sports-delegation-ms-1.0-SNAPSHOT-shaded.jar
+java -jar target/sports-delegation-ms-1.2.0-shaded.jar
 ```
 
 ## Mobile QR Verification
@@ -213,26 +214,55 @@ SQLite database or private person fields.
 
 ## Build Windows Installer
 
+One-time build-machine prerequisite: install WiX Toolset CLI 5.0.2. Newer WiX
+7 releases require separate licensing acceptance and are not used by this
+build:
+
+```powershell
+winget install --id WiXToolset.WiXCLI --exact --version 5.0.2.0
+```
+
 Use the one-command script:
 
 ```powershell
-./build-installer.ps1 -CleanOutput
+build-installer.cmd -CleanOutput
 ```
 
 Or package only:
 
 ```powershell
-./build-installer.ps1 -SkipBuild -CleanOutput
+build-installer.cmd -SkipBuild -CleanOutput
 ```
 
 Installer output:
 
-- dist/SDMS-1.0.exe
+- dist/Athlete Track-1.2.0.exe
+
+### Updating an installed copy
+
+The Windows package now has a permanent upgrade identity. To publish a newer
+release, choose a version greater than the installed version and run:
+
+```powershell
+build-installer.cmd -AppVersion 1.2.0
+```
+
+Give users the resulting `Athlete Track-1.2.0.exe`. They should close Athlete
+Track and run the new installer normally. Windows replaces the installed
+program in place; users do not uninstall the old version first.
+
+The SQLite database, photos, QR codes, exports, logs, and verification settings
+are stored under the user's local application-data directory, outside the
+installation directory, so an in-place upgrade preserves them.
+
+Version numbers must increase and use three numeric parts, such as `1.1.0`,
+`1.1.1`, then `1.2.0`. The script passes the same version to Maven, the app's
+About screen, and the Windows installer.
 
 ## Current Runtime Data Paths (Windows)
 
-- Database: %LOCALAPPDATA%/SDMS/sdms.db
-- Photos: %LOCALAPPDATA%/SDMS/data/photos
-- QR codes: %LOCALAPPDATA%/SDMS/data/qrcodes
-- Exports: %LOCALAPPDATA%/SDMS/data/exports
-- Startup logs: %LOCALAPPDATA%/SDMS/logs/startup-error.log
+- New installs: `%LOCALAPPDATA%/Athlete Track`
+- Legacy installs continue using: `%LOCALAPPDATA%/SDMS`
+- Database: `<app-data>/sdms.db`
+- Photos, QR codes, and exports: `<app-data>/data`
+- Startup logs: `<app-data>/logs/startup-error.log`
