@@ -60,9 +60,8 @@ public class QRCodeService {
 
     public static String refreshAthleteQRCode(Athlete athlete)
             throws WriterException, IOException, SQLException, InterruptedException {
-        String payload = OnlineVerificationService.publishAthlete(athlete)
-            .orElseGet(() -> buildAthletePayload(
-                athlete.getAthleteId(), athlete.getFullName(), athlete.getSchool()));
+        String payload = buildAthletePayload(
+            athlete.getAthleteId(), athlete.getFullName(), athlete.getSchool());
         String qrPath = generateQRCode(payload, athlete.getAthleteId());
         athlete.setQrCodePath(qrPath);
         DatabaseService.getInstance().updateAthleteQrCode(athlete.getId(), qrPath);
@@ -71,9 +70,8 @@ public class QRCodeService {
 
     public static String refreshOfficialQRCode(Official official)
             throws WriterException, IOException, SQLException, InterruptedException {
-        String payload = OnlineVerificationService.publishOfficial(official)
-            .orElseGet(() -> buildOfficialPayload(
-                official.getOfficialId(), official.getFullName(), official.getSchool()));
+        String payload = buildOfficialPayload(
+            official.getOfficialId(), official.getFullName(), official.getSchool());
         String qrPath = generateQRCode(payload, official.getOfficialId());
         official.setQrCodePath(qrPath);
         DatabaseService.getInstance().updateOfficialQrCode(official.getId(), qrPath);
@@ -82,9 +80,8 @@ public class QRCodeService {
 
     public static String refreshCoachQRCode(Coach coach)
             throws WriterException, IOException, SQLException, InterruptedException {
-        String payload = OnlineVerificationService.publishCoach(coach)
-            .orElseGet(() -> buildCoachPayload(
-                coach.getCoachId(), coach.getFullName(), coach.getSchool()));
+        String payload = buildCoachPayload(
+            coach.getCoachId(), coach.getFullName(), coach.getSchool());
         String qrPath = generateQRCode(payload, coach.getCoachId());
         coach.setQrCodePath(qrPath);
         DatabaseService.getInstance().updateCoachQrCode(coach.getId(), qrPath);
