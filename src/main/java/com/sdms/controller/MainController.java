@@ -13,9 +13,7 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.awt.Desktop;
 import java.io.IOException;
-import java.net.URI;
 import java.util.List;
 
 public class MainController {
@@ -56,18 +54,9 @@ public class MainController {
     }
     @FXML private void onRoster()          { openDialog("/fxml/Roster.fxml",          "Delegation Roster",     480, 400); }
     @FXML private void onChangePassword()  { openDialog("/fxml/ChangePassword.fxml",  "Change Password",       420, 360); }
-    @FXML private void onAbout()           { openDialog("/fxml/About.fxml",           "About Athlete Track",   460, 420); }
+    @FXML private void onAbout()           { openDialog("/fxml/About.fxml",           "About Athlete Track",   560, 580); }
     @FXML private void onFooterClick(MouseEvent event) {
-        if (event.getTarget() instanceof Hyperlink) return;
-        openDialog("/fxml/TeamDialog.fxml", "Alfa Dev Team", 1320, 760);
-    }
-
-    @FXML private void onOpenDepTrack() {
-        try {
-            Desktop.getDesktop().browse(URI.create("https://depedsdocityofbaliwagdeptrack.com/pages/landingPage.php"));
-        } catch (Exception e) {
-            new Alert(Alert.AlertType.ERROR, "Could not open DepTrack site: " + e.getMessage()).showAndWait();
-        }
+        openDialog("/fxml/TeamDialog.fxml", "About the Developer", 760, 620);
     }
 
     @FXML private void onLogout() {
@@ -82,7 +71,8 @@ public class MainController {
                 scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
                 Stage stage = (Stage) btnDashboard.getScene().getWindow();
                 stage.setScene(scene);
-                stage.setWidth(520); stage.setHeight(680);
+                stage.setWidth(980); stage.setHeight(680);
+                stage.setMinWidth(860); stage.setMinHeight(620);
                 stage.centerOnScreen();
                 stage.setTitle(AppInfo.appName() + " - Login (" + AppInfo.displayVersion() + ")");
             } catch (IOException e) {
@@ -96,6 +86,7 @@ public class MainController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
             Parent root = loader.load();
             Stage dialog = new Stage();
+            dialog.initOwner(contentArea.getScene().getWindow());
             dialog.initModality(Modality.APPLICATION_MODAL);
             dialog.setTitle(title);
             Scene scene = new Scene(root, w, h);

@@ -15,9 +15,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.awt.Desktop;
-import java.net.URI;
-
 public class LoginController {
 
     @FXML private TextField txtUsername;
@@ -178,16 +175,7 @@ public class LoginController {
     }
 
     @FXML private void onFooterClick(MouseEvent event) {
-        if (event.getTarget() instanceof Hyperlink) return;
         openTeamDialog();
-    }
-
-    @FXML private void onOpenDepTrack() {
-        try {
-            Desktop.getDesktop().browse(URI.create("https://depedsdocityofbaliwagdeptrack.com/pages/landingPage.php"));
-        } catch (Exception e) {
-            showError("Could not open DepTrack site: " + e.getMessage());
-        }
     }
 
     private void openTeamDialog() {
@@ -195,12 +183,14 @@ public class LoginController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/TeamDialog.fxml"));
             Parent root = loader.load();
             Stage dialog = new Stage();
+            dialog.initOwner(btnLogin.getScene().getWindow());
             dialog.initModality(Modality.APPLICATION_MODAL);
-            dialog.setTitle("Alfa Dev Team");
-            Scene scene = new Scene(root, 1320, 760);
+            dialog.setTitle("About the Developer");
+            Scene scene = new Scene(root, 760, 620);
             scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
             dialog.setScene(scene);
-            dialog.show();
+            dialog.setResizable(false);
+            dialog.showAndWait();
         } catch (Exception e) {
             showError("Could not open team dialog: " + e.getMessage());
         }

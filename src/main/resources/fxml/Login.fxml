@@ -1,80 +1,108 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.*?>
-<?import javafx.geometry.*?>
+<?import javafx.scene.layout.*?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
-                     xmlns:fx="http://javafx.com/fxml/1"
-                     fx:controller="com.sdms.controller.LoginController"
-                     style="-fx-background-color: #1A3A5C;">
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.sdms.controller.LoginController"
+            styleClass="login-root">
 
-       <center>
-       <StackPane>
+    <center>
+        <StackPane>
+            <padding><Insets top="14" right="30" bottom="10" left="30"/></padding>
 
-               <VBox alignment="CENTER" spacing="16" maxWidth="340" maxHeight="-Infinity"
-          style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 40 36 36 36;">
+            <HBox styleClass="login-shell" maxWidth="900" prefHeight="510">
+                <VBox styleClass="login-brand-panel" prefWidth="410" spacing="18">
+                    <padding><Insets top="28" right="38" bottom="24" left="38"/></padding>
 
-        <Label text="Athlete Track"
-               style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #1A3A5C;"/>
-        <Label text="Palarong Pambansa Delegation System" maxWidth="Infinity" alignment="CENTER"
-               style="-fx-font-size: 11px; -fx-text-fill: #64748B; -fx-text-alignment: center;"
-               wrapText="true"/>
-        <Label text="Palarong Pambansa" maxWidth="Infinity" alignment="CENTER"
-               style="-fx-font-size: 10px; -fx-text-fill: #94A3B8;"/>
+                    <ImageView fitWidth="76" fitHeight="76" preserveRatio="true">
+                        <image><Image url="@../images/SDO-Seal.png"/></image>
+                    </ImageView>
 
-        <Separator/>
+                    <VBox spacing="5">
+                        <Label text="PALARONG PAMBANSA" styleClass="login-brand-kicker"/>
+                        <Label text="Athlete Track" styleClass="login-brand-title"/>
+                        <Label text="Sports Delegation Management System"
+                               styleClass="login-brand-subtitle" wrapText="true" maxWidth="320"/>
+                    </VBox>
 
-        <VBox spacing="10" maxWidth="280">
-            <Label fx:id="lblSetup"
-                   text="First-time setup: create the administrator account."
-                   wrapText="true" maxWidth="280"
-                   style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #1E6FA8;"/>
-            <Label text="Username"
-                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
-            <TextField fx:id="txtUsername" promptText="Enter username"
-                       style="-fx-font-size: 13px; -fx-padding: 8 12 8 12; -fx-border-color: #CBD5E1; -fx-border-radius: 6; -fx-background-radius: 6;"/>
+                    <Separator opacity="0.18"/>
 
-            <Label fx:id="lblFullName" text="Full name"
-                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
-            <TextField fx:id="txtFullName" promptText="Administrator full name"
-                       style="-fx-font-size: 13px; -fx-padding: 8 12 8 12; -fx-border-color: #CBD5E1; -fx-border-radius: 6; -fx-background-radius: 6;"/>
+                    <VBox spacing="12">
+                        <Label text="✓  Secure delegation records" styleClass="login-feature"/>
+                        <Label text="✓  ID cards and printable reports" styleClass="login-feature"/>
+                        <Label text="✓  Local Android QR verification" styleClass="login-feature"/>
+                    </VBox>
 
-            <Label text="Password"
-                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
-            <PasswordField fx:id="txtPassword" promptText="Enter password"
-                           style="-fx-font-size: 13px; -fx-padding: 8 12 8 12; -fx-border-color: #CBD5E1; -fx-border-radius: 6; -fx-background-radius: 6;"/>
+                    <Region VBox.vgrow="ALWAYS"/>
 
-            <Label fx:id="lblConfirm" text="Confirm password"
-                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
-            <PasswordField fx:id="txtConfirm" promptText="Re-enter password"
-                           style="-fx-font-size: 13px; -fx-padding: 8 12 8 12; -fx-border-color: #CBD5E1; -fx-border-radius: 6; -fx-background-radius: 6;"/>
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <ImageView fitWidth="38" fitHeight="38" preserveRatio="true">
+                            <image><Image url="@../images/alfadevs-logo.jpg"/></image>
+                        </ImageView>
+                        <VBox spacing="0">
+                            <Label text="Developed by AlfaDevs" style="-fx-text-fill: #E5F5FA; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                            <Label text="Reniel John H. Placer" style="-fx-text-fill: #7FBED2; -fx-font-size: 10px;"/>
+                        </VBox>
+                    </HBox>
+                </VBox>
 
-            <Label fx:id="lblError" text="" wrapText="true" maxWidth="280"
-                   style="-fx-text-fill: #DC2626; -fx-font-size: 11px;"/>
+                <VBox styleClass="login-card" prefWidth="490" spacing="8">
+                    <padding><Insets top="24" right="46" bottom="18" left="46"/></padding>
 
-            <Button fx:id="btnLogin" text="Log In" maxWidth="Infinity"
-                    onAction="#onLogin" defaultButton="true"
-                    style="-fx-background-color: #1E6FA8; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;"/>
-        </VBox>
+                    <VBox spacing="4">
+                        <Label text="Welcome" styleClass="login-card-title"/>
+                        <Label text="Sign in to continue to Athlete Track" styleClass="login-card-subtitle"/>
+                    </VBox>
 
-        <Label fx:id="lblVersion" text="Version"
-               style="-fx-font-size: 10px; -fx-text-fill: #94A3B8;"/>
-    </VBox>
-       </StackPane>
-       </center>
+                    <Label fx:id="lblSetup"
+                           text="First-time setup: create the administrator account."
+                           wrapText="true" maxWidth="Infinity" styleClass="setup-banner"/>
 
-       <bottom>
-              <HBox styleClass="app-footer" alignment="CENTER_LEFT" spacing="12" onMouseClicked="#onFooterClick">
-                     <padding><Insets top="8" bottom="8" left="14" right="14"/></padding>
-                     <ImageView fitWidth="34" fitHeight="34" preserveRatio="true">
-                            <image><Image url="@../images/SDO-Seal.png"/></image>
-                     </ImageView>
-                     <Label text="© 2026 SDMS | Developed by AlfaDevs." styleClass="app-footer-text"/>
-                     <Hyperlink text="DepTrack Site" onAction="#onOpenDepTrack" styleClass="app-footer-link"/>
-                     <Region HBox.hgrow="ALWAYS"/>
-                     <Label text="Click footer to view team" styleClass="app-footer-hint"/>
-              </HBox>
-       </bottom>
+                    <VBox spacing="4">
+                        <Label text="Username" styleClass="field-label"/>
+                        <TextField fx:id="txtUsername" promptText="Enter username"/>
+                    </VBox>
 
+                    <VBox spacing="4">
+                        <Label fx:id="lblFullName" text="Full name" styleClass="field-label"/>
+                        <TextField fx:id="txtFullName" promptText="Administrator full name"/>
+                    </VBox>
+
+                    <VBox spacing="4">
+                        <Label text="Password" styleClass="field-label"/>
+                        <PasswordField fx:id="txtPassword" promptText="Enter password"/>
+                    </VBox>
+
+                    <VBox spacing="4">
+                        <Label fx:id="lblConfirm" text="Confirm password" styleClass="field-label"/>
+                        <PasswordField fx:id="txtConfirm" promptText="Re-enter password"/>
+                    </VBox>
+
+                    <Label fx:id="lblError" text="" wrapText="true" maxWidth="Infinity" styleClass="login-error"/>
+
+                    <Button fx:id="btnLogin" text="Log In" maxWidth="Infinity"
+                            onAction="#onLogin" defaultButton="true" styleClass="btn-primary"/>
+
+                    <Region VBox.vgrow="ALWAYS"/>
+                    <Label fx:id="lblVersion" text="Version" alignment="CENTER" maxWidth="Infinity" styleClass="login-version"/>
+                </VBox>
+            </HBox>
+        </StackPane>
+    </center>
+
+    <bottom>
+        <HBox styleClass="app-footer" alignment="CENTER_LEFT" spacing="10" onMouseClicked="#onFooterClick">
+            <padding><Insets top="8" right="16" bottom="8" left="16"/></padding>
+            <ImageView fitWidth="25" fitHeight="25" preserveRatio="true">
+                <image><Image url="@../images/alfadevs-logo.jpg"/></image>
+            </ImageView>
+            <Label text="AlfaDevs" styleClass="app-footer-brand"/>
+            <Label text="© 2026 · Athlete Track · Developed by Reniel John H. Placer" styleClass="app-footer-text"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="About the developer" styleClass="app-footer-hint"/>
+        </HBox>
+    </bottom>
 </BorderPane>

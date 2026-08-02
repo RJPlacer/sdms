@@ -150,9 +150,12 @@ public class AthleteController {
             ctrl.setAthlete(athlete);
             ctrl.setOnSave(() -> { loadAllAthletes(); refreshSchoolFilter(); });
             Stage dialog = new Stage();
+            dialog.initOwner(athleteTable.getScene().getWindow());
             dialog.initModality(Modality.APPLICATION_MODAL);
             dialog.setTitle(athlete.getId() == 0 ? "New Athlete" : "Edit Athlete");
-            dialog.setScene(new Scene(root));
+            Scene scene = new Scene(root);
+            scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
+            dialog.setScene(scene);
             dialog.showAndWait();
         } catch (IOException e) { showError("Could not open form: " + e.getMessage()); }
     }

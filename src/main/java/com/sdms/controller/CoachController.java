@@ -134,9 +134,12 @@ public class CoachController {
             CoachFormController ctrl = loader.getController();
             ctrl.setCoach(coach); ctrl.setOnSave(this::loadAll);
             Stage dialog = new Stage();
+            dialog.initOwner(coachTable.getScene().getWindow());
             dialog.initModality(Modality.APPLICATION_MODAL);
             dialog.setTitle(coach.getId() == 0 ? "New Coach" : "Edit Coach");
-            dialog.setScene(new Scene(root));
+            Scene scene = new Scene(root);
+            scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
+            dialog.setScene(scene);
             dialog.showAndWait();
         } catch (IOException e) { showError("Could not open form: " + e.getMessage()); }
     }

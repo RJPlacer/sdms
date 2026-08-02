@@ -107,9 +107,12 @@ public class EquipmentController {
             EquipmentFormController ctrl = loader.getController();
             ctrl.setEquipment(equipment); ctrl.setOnSave(this::loadAll);
             Stage dialog = new Stage();
+            dialog.initOwner(equipmentTable.getScene().getWindow());
             dialog.initModality(Modality.APPLICATION_MODAL);
             dialog.setTitle(equipment.getId() == 0 ? "New Equipment Record" : "Edit Equipment Record");
-            dialog.setScene(new Scene(root, 800, 600));
+            Scene scene = new Scene(root, 800, 600);
+            scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
+            dialog.setScene(scene);
             dialog.showAndWait();
         } catch (IOException e) { showError("Could not open form: " + e.getMessage()); }
     }

@@ -37,8 +37,10 @@ public class MainApp extends Application {
 
             primaryStage.setTitle(AppInfo.appName() + " - Login (" + AppInfo.displayVersion() + ")");
             primaryStage.setScene(scene);
-            primaryStage.setWidth(520);
+            primaryStage.setWidth(980);
             primaryStage.setHeight(680);
+            primaryStage.setMinWidth(860);
+            primaryStage.setMinHeight(620);
             primaryStage.setResizable(true);
             primaryStage.centerOnScreen();
             primaryStage.show();

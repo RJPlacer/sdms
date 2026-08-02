@@ -1,43 +1,92 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.control.*?>
 <?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
 <VBox xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sdms.controller.DashboardController"
-      styleClass="module-header" alignment="TOP_LEFT">
+      styleClass="page-root" spacing="20">
+    <padding><Insets top="26" right="26" bottom="26" left="26"/></padding>
 
-    <padding><Insets top="30" bottom="30" left="30" right="30"/></padding>
+    <HBox styleClass="dashboard-header" alignment="CENTER_LEFT" spacing="14">
+        <padding><Insets top="18" right="20" bottom="18" left="20"/></padding>
+        <VBox spacing="3">
+            <Label text="Dashboard" styleClass="page-title"/>
+            <Label text="A clear overview of your sports delegation records" styleClass="page-subtitle"/>
+        </VBox>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label text="LOCAL &amp; SECURE" styleClass="status-chip"/>
+    </HBox>
 
-    <Label text="Dashboard" styleClass="module-title" style="-fx-padding: 0 0 24 0;"/>
+    <HBox spacing="14">
+        <VBox styleClass="stat-card,stat-card-athletes" maxWidth="Infinity" HBox.hgrow="ALWAYS" spacing="5">
+            <Label text="ATHLETES" styleClass="stat-label"/>
+            <Label fx:id="lblAthleteCount" text="0" styleClass="stat-value"/>
+            <Label text="registered participants" styleClass="stat-caption"/>
+        </VBox>
 
-    <!-- Stats cards row -->
-    <HBox spacing="20">
-        <!-- Athletes -->
-        <VBox styleClass="stat-card" prefWidth="200" prefHeight="120" alignment="CENTER" spacing="8">
-            <Label text="Athletes" style="-fx-font-size: 13px; -fx-text-fill: #64748B;"/>
-            <Label fx:id="lblAthleteCount" text="0" style="-fx-font-size: 42px; -fx-font-weight: bold; -fx-text-fill: #1E6FA8;"/>
-            <Label text="registered" style="-fx-font-size: 11px; -fx-text-fill: #94A3B8;"/>
+        <VBox styleClass="stat-card,stat-card-officials" maxWidth="Infinity" HBox.hgrow="ALWAYS" spacing="5">
+            <Label text="OFFICIALS" styleClass="stat-label"/>
+            <Label fx:id="lblOfficialCount" text="0" styleClass="stat-value"/>
+            <Label text="registered delegates" styleClass="stat-caption"/>
         </VBox>
-        <!-- Officials -->
-        <VBox styleClass="stat-card" prefWidth="200" prefHeight="120" alignment="CENTER" spacing="8">
-            <Label text="Officials" style="-fx-font-size: 13px; -fx-text-fill: #64748B;"/>
-            <Label fx:id="lblOfficialCount" text="0" style="-fx-font-size: 42px; -fx-font-weight: bold; -fx-text-fill: #0F6E56;"/>
-            <Label text="registered" style="-fx-font-size: 11px; -fx-text-fill: #94A3B8;"/>
+
+        <VBox styleClass="stat-card,stat-card-coaches" maxWidth="Infinity" HBox.hgrow="ALWAYS" spacing="5">
+            <Label text="COACHES" styleClass="stat-label"/>
+            <Label fx:id="lblCoachCount" text="0" styleClass="stat-value"/>
+            <Label text="registered coaches" styleClass="stat-caption"/>
         </VBox>
-        <!-- Coaches -->
-        <VBox styleClass="stat-card" prefWidth="200" prefHeight="120" alignment="CENTER" spacing="8">
-            <Label text="Coaches" style="-fx-font-size: 13px; -fx-text-fill: #64748B;"/>
-            <Label fx:id="lblCoachCount" text="0" style="-fx-font-size: 42px; -fx-font-weight: bold; -fx-text-fill: #854F0B;"/>
-            <Label text="registered" style="-fx-font-size: 11px; -fx-text-fill: #94A3B8;"/>
-        </VBox>
-        <!-- Equipment -->
-        <VBox styleClass="stat-card" prefWidth="200" prefHeight="120" alignment="CENTER" spacing="8">
-            <Label text="Equipment Records" style="-fx-font-size: 13px; -fx-text-fill: #64748B;"/>
-            <Label fx:id="lblEquipmentCount" text="0" style="-fx-font-size: 42px; -fx-font-weight: bold; -fx-text-fill: #993556;"/>
-            <Label text="borrowing records" style="-fx-font-size: 11px; -fx-text-fill: #94A3B8;"/>
+
+        <VBox styleClass="stat-card,stat-card-equipment" maxWidth="Infinity" HBox.hgrow="ALWAYS" spacing="5">
+            <Label text="EQUIPMENT" styleClass="stat-label"/>
+            <Label fx:id="lblEquipmentCount" text="0" styleClass="stat-value"/>
+            <Label text="borrowing records" styleClass="stat-caption"/>
         </VBox>
     </HBox>
 
+    <VBox styleClass="workflow-panel" spacing="18" VBox.vgrow="ALWAYS">
+        <padding><Insets top="24" right="24" bottom="24" left="24"/></padding>
+        <VBox spacing="4">
+            <Label text="Delegation workflow" styleClass="workflow-title"/>
+            <Label text="Everything you need from registration to on-site QR verification" styleClass="workflow-subtitle"/>
+        </VBox>
+
+        <HBox spacing="14" alignment="CENTER">
+            <HBox styleClass="workflow-step" alignment="CENTER_LEFT" spacing="12" maxWidth="Infinity" HBox.hgrow="ALWAYS">
+                <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+                <Label text="1" styleClass="workflow-number"/>
+                <VBox spacing="3">
+                    <Label text="Register records" styleClass="workflow-step-title"/>
+                    <Label text="Add athletes, officials, coaches, and equipment." styleClass="workflow-step-copy" wrapText="true"/>
+                </VBox>
+            </HBox>
+
+            <HBox styleClass="workflow-step" alignment="CENTER_LEFT" spacing="12" maxWidth="Infinity" HBox.hgrow="ALWAYS">
+                <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+                <Label text="2" styleClass="workflow-number"/>
+                <VBox spacing="3">
+                    <Label text="Prepare documents" styleClass="workflow-step-title"/>
+                    <Label text="Generate ID cards, reports, and delegation rosters." styleClass="workflow-step-copy" wrapText="true"/>
+                </VBox>
+            </HBox>
+
+            <HBox styleClass="workflow-step" alignment="CENTER_LEFT" spacing="12" maxWidth="Infinity" HBox.hgrow="ALWAYS">
+                <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+                <Label text="3" styleClass="workflow-number"/>
+                <VBox spacing="3">
+                    <Label text="Verify instantly" styleClass="workflow-step-title"/>
+                    <Label text="Use the Android companion to scan IDs locally." styleClass="workflow-step-copy" wrapText="true"/>
+                </VBox>
+            </HBox>
+        </HBox>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="ALFADEVS" style="-fx-text-fill: #56D2F2; -fx-font-size: 10px; -fx-font-weight: bold;"/>
+            <Label text="Built for dependable local operations—no hosted account required."
+                   style="-fx-text-fill: #91BBCB; -fx-font-size: 10px;"/>
+        </HBox>
+    </VBox>
 </VBox>

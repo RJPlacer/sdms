@@ -22,7 +22,7 @@ Verification commands:
   - src/main/resources/images/app-logo.ico
 - Confirm launcher class is AppLauncher in packaging settings
 - Confirm shaded JAR builds:
-  - target/sports-delegation-ms-1.3.0-shaded.jar
+  - target/sports-delegation-ms-1.4.0-shaded.jar
 
 ## 3. Build Installer
 
@@ -30,10 +30,10 @@ Recommended command:
 - build-installer.cmd -CleanOutput
 
 Expected output:
-- dist/Athlete Track-1.3.0.exe
+- dist/Athlete Track-1.4.0.exe
 
 For later releases, increase the three-part version:
-- build-installer.cmd -AppVersion 1.3.0
+- build-installer.cmd -AppVersion 1.4.0
 
 Do not change the upgrade UUID in `build-installer.ps1`. Users can close the
 app and run the newer installer directly over the installed version. Their
@@ -97,7 +97,7 @@ If app does not open:
 ## 10. Release Handover Package
 
 Include these files for delivery:
-- dist/Athlete Track-1.3.0.exe
+- dist/Athlete Track-1.4.0.exe
 - docs/USER_MANUAL.md
 - docs/DEPLOYMENT_CHECKLIST.md
 - docs/SYSTEM_DOCUMENTATION.md

@@ -136,9 +136,12 @@ public class OfficialController {
             ctrl.setOfficial(official);
             ctrl.setOnSave(this::loadAll);
             Stage dialog = new Stage();
+            dialog.initOwner(officialTable.getScene().getWindow());
             dialog.initModality(Modality.APPLICATION_MODAL);
             dialog.setTitle(official.getId() == 0 ? "New Official" : "Edit Official");
-            dialog.setScene(new Scene(root));
+            Scene scene = new Scene(root);
+            scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
+            dialog.setScene(scene);
             dialog.showAndWait();
         } catch (IOException e) { showError("Could not open form: " + e.getMessage()); }
     }
