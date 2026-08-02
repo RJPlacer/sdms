@@ -137,6 +137,7 @@ public final class SharingManager implements AutoCloseable {
 
     public synchronized void connectClient(String host, int pairingPort, String code) throws Exception {
         SharingConfig candidate = PairingClient.pair(host, pairingPort, code);
+        ensureH2Driver();
         try (Connection ignored = DriverManager.getConnection(
                 jdbcUrl(candidate), candidate.getDatabaseUser(), candidate.getDatabasePassword())) {
             // Connection test succeeded.
@@ -168,9 +169,12 @@ public final class SharingManager implements AutoCloseable {
     public synchronized boolean testConnection() {
         if (config.getMode() == SharingConfig.Mode.LOCAL) return true;
         DriverManager.setLoginTimeout((int) Duration.ofSeconds(4).toSeconds());
-        try (Connection ignored = DriverManager.getConnection(
-                jdbcUrl(), databaseUser(), databasePassword())) {
-            return true;
+        try {
+            ensureH2Driver();
+            try (Connection ignored = DriverManager.getConnection(
+                    jdbcUrl(), databaseUser(), databasePassword())) {
+                return true;
+            }
         } catch (Exception e) {
             return false;
         } finally {
@@ -213,7 +217,7 @@ public final class SharingManager implements AutoCloseable {
 
     private void startHostInfrastructure() throws Exception {
         if (databaseServer != null && databaseServer.isRunning(false)) return;
-        Class.forName("org.h2.Driver");
+        ensureH2Driver();
         String baseDir = AppPaths.sharedDatabaseDir().toAbsolutePath().toString();
         Path databaseFile = AppPaths.sharedDatabaseDir().resolve("athlete-track.mv.db");
         if (!Files.exists(databaseFile)) {
@@ -232,6 +236,12 @@ public final class SharingManager implements AutoCloseable {
         pairingServer.start();
         discoveryService = new NetworkDiscoveryService();
         discoveryService.startResponder(config.getServerName(), config.getPairingPort());
+    }
+
+    private static void ensureH2Driver() throws ClassNotFoundException {
+        // The packaged application combines dependencies into one JAR, so load
+        // H2 directly rather than relying on merged JDBC service metadata.
+        Class.forName("org.h2.Driver");
     }
 
     private static SharingConfig newHostConfig(String serverName) {
