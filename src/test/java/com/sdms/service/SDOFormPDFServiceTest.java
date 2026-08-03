@@ -1,6 +1,7 @@
 package com.sdms.service;
 
 import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.parser.PdfTextExtractor;
 import com.sdms.model.Athlete;
 import com.sdms.model.Equipment;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SDOFormPDFServiceTest {
@@ -24,6 +26,7 @@ class SDOFormPDFServiceTest {
             Athlete athlete = sampleAthlete();
             Path athletePdf = Path.of(SDOFormPDFService.exportAthleteRecord(athlete));
             verifyPdf(athletePdf);
+            verifyAthleteTemplate(athletePdf);
 
             Equipment equipment = sampleEquipment();
             Path equipmentPdf = Path.of(SDOFormPDFService.exportEquipmentMemorandum(equipment));
@@ -118,6 +121,23 @@ class SDOFormPDFServiceTest {
         PdfReader reader = new PdfReader(pdf.toString());
         try {
             assertEquals(1, reader.getNumberOfPages());
+        } finally {
+            reader.close();
+        }
+    }
+
+    private static void verifyAthleteTemplate(Path pdf) throws Exception {
+        PdfReader reader = new PdfReader(pdf.toString());
+        try {
+            String text = new PdfTextExtractor(reader).getTextFromPage(1);
+            assertTrue(text.contains("AR (ATHLETE RECORD)"));
+            assertTrue(text.contains("CITY OF BALIWAG"));
+            assertTrue(text.contains("(Last)"));
+            assertTrue(text.contains("(First)"));
+            assertTrue(text.contains("(M.I.)"));
+            assertTrue(text.contains("Grade Level"));
+            assertTrue(text.contains("Athlete's Signature over Printed Name"));
+            assertFalse(text.contains("Athlete ID"));
         } finally {
             reader.close();
         }

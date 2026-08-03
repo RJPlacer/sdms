@@ -54,9 +54,9 @@ public final class SDOFormPDFService {
         String id = safeId(athlete.getAthleteId(), "ATHLETE");
         Path output = exports.resolve("ATHLETE_RECORD_" + id + ".pdf");
 
-        Document document = new Document(PageSize.A4, 34, 34, 132, 100);
+        Document document = new Document(PageSize.A4, 34, 34, 24, 100);
         PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream(output.toFile()));
-        writer.setPageEvent(new SdoLetterhead());
+        writer.setPageEvent(new SdoLetterhead(false));
         document.open();
 
         Font tiny = font(6.5f, Font.NORMAL);
@@ -65,47 +65,47 @@ public final class SDOFormPDFService {
         Font body = font(8f, Font.NORMAL);
         Font bodyBold = font(8f, Font.BOLD);
         Font section = font(8.5f, Font.BOLD);
-        Font title = font(12f, Font.BOLD);
+        Font title = font(14f, Font.BOLD);
 
         PdfPTable meta = new PdfPTable(2);
         meta.setWidthPercentage(100);
         meta.addCell(borderless("Revised as of September 2025", tiny, Element.ALIGN_LEFT));
         meta.addCell(borderless("AR (ATHLETE RECORD)", title, Element.ALIGN_RIGHT));
-        meta.setSpacingAfter(4);
+        meta.setSpacingAfter(1);
         document.add(meta);
+
+        PdfPTable formHeader = new PdfPTable(3);
+        formHeader.setWidthPercentage(100);
+        formHeader.setWidths(new float[]{1.25f, 4.5f, 1.25f});
+        formHeader.addCell(imageCell("/images/kagawaran-ng-edukasyon-logo.png", 74, 74));
+        formHeader.addCell(athleteHeaderCell(athlete));
+        formHeader.addCell(photoCell(athlete.getPhotoPath(), tiny));
+        formHeader.setSpacingAfter(5);
+        document.add(formHeader);
 
         document.add(sectionTitle("A. PERSONAL DATA", section));
 
-        PdfPTable identity = new PdfPTable(2);
-        identity.setWidthPercentage(100);
-        identity.setWidths(new float[]{5.2f, 1.25f});
-
-        PdfPTable details = new PdfPTable(6);
-        details.setWidthPercentage(100);
-        addField(details, "Last Name", athlete.getLastName(), 2, bodyBold, body);
-        addField(details, "First Name", athlete.getFirstName(), 2, bodyBold, body);
-        addField(details, "M.I.", athlete.getMiddleInitial(), 2, bodyBold, body);
-        addField(details, "Sex", athlete.getSex(), 2, bodyBold, body);
-        addField(details, "Learner Reference Number (LRN)", athlete.getLearnerRefNumber(), 2, bodyBold, body);
-        addField(details, "Contact Number", athlete.getContactNo(), 2, bodyBold, body);
-        addField(details, "Date of Birth", date(athlete.getDateOfBirth()), 2, bodyBold, body);
-        addField(details, "Age", athlete.getAge() > 0 ? Integer.toString(athlete.getAge()) : "", 1, bodyBold, body);
-        addField(details, "Place of Birth", athlete.getPlaceOfBirth(), 3, bodyBold, body);
-        addField(details, "School", athlete.getSchool(), 4, bodyBold, body);
-        addField(details, "Grade Level", athlete.getGradeLevel(), 2, bodyBold, body);
-        addField(details, "Address of School", athlete.getSchoolAddress(), 6, bodyBold, body);
-        addField(details, "Present Address", athlete.getPresentAddress(), 6, bodyBold, body);
-        addField(details, "Father's Name", athlete.getFatherName(), 3, bodyBold, body);
-        addField(details, "Mother/Guardian", athlete.getMotherName(), 3, bodyBold, body);
-        addField(details, "Address of Parents/Guardian", athlete.getGuardianAddress(), 6, bodyBold, body);
-
-        PdfPCell detailCell = new PdfPCell();
-        detailCell.setPadding(0);
-        detailCell.addElement(details);
-        identity.addCell(detailCell);
-        identity.addCell(photoCell(athlete.getPhotoPath(), tiny));
-        identity.setSpacingAfter(5);
-        document.add(identity);
+        document.add(nameLine(athlete, bodyBold, body, tiny));
+        document.add(personalLine(new float[]{1.1f, 2.2f, 1.5f}, bodyBold, body,
+            "Sex", athlete.getSex(),
+            "Learner Reference Number (LRN)", athlete.getLearnerRefNumber(),
+            "Contact Number", athlete.getContactNo()));
+        document.add(personalLine(new float[]{1.4f, 0.7f, 2.1f, 1.2f}, bodyBold, body,
+            "Date of Birth", date(athlete.getDateOfBirth()),
+            "Age", athlete.getAge() > 0 ? Integer.toString(athlete.getAge()) : "",
+            "Place of Birth", athlete.getPlaceOfBirth(),
+            "Grade Level", athlete.getGradeLevel()));
+        document.add(personalLine(new float[]{1f}, bodyBold, body,
+            "School", athlete.getSchool()));
+        document.add(personalLine(new float[]{1f}, bodyBold, body,
+            "Address of School", athlete.getSchoolAddress()));
+        document.add(personalLine(new float[]{1f}, bodyBold, body,
+            "Present Address", athlete.getPresentAddress()));
+        document.add(parentLine(athlete, bodyBold, body, tiny));
+        PdfPTable guardian = personalLine(new float[]{1f}, bodyBold, body,
+            "Address of Parents/Guardian", athlete.getGuardianAddress());
+        guardian.setSpacingAfter(5);
+        document.add(guardian);
 
         Paragraph participation = sectionTitle(
             "B. Participation in the previous Palarong Pambansa:  Yes _____  No _____  "
@@ -308,6 +308,127 @@ public final class SDOFormPDFService {
         }
     }
 
+    private static PdfPCell athleteHeaderCell(Athlete athlete) {
+        PdfPCell cell = new PdfPCell();
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPadding(0);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cell.addElement(centeredLine("Republic of the Philippines", font(8f, Font.NORMAL), 9f));
+        cell.addElement(centeredLine("Department of Education", font(11.5f, Font.BOLD), 12f));
+        cell.addElement(centeredLine("CENTRAL LUZON", font(8.5f, Font.NORMAL), 9f));
+        cell.addElement(centeredLine("(Region)", font(6f, Font.ITALIC), 7f));
+        cell.addElement(centeredLine("CITY OF BALIWAG", font(10.5f, Font.NORMAL), 11f));
+        cell.addElement(centeredLine("(Division)", font(6f, Font.ITALIC), 7f));
+        cell.addElement(centeredLine(ns(athlete.getSchool()).toUpperCase(), font(9.5f, Font.NORMAL), 10f));
+        cell.addElement(centeredLine("(School)", font(6f, Font.ITALIC), 7f));
+        cell.addElement(centeredLine(ns(athlete.getSchoolAddress()).toUpperCase(), font(8.5f, Font.NORMAL), 9f));
+        cell.addElement(centeredLine("(School Address)", font(6f, Font.ITALIC), 7f));
+        return cell;
+    }
+
+    private static Paragraph centeredLine(String value, Font font, float leading) {
+        Paragraph line = new Paragraph(ns(value), font);
+        line.setAlignment(Element.ALIGN_CENTER);
+        line.setLeading(leading);
+        line.setSpacingBefore(0);
+        line.setSpacingAfter(0);
+        return line;
+    }
+
+    private static PdfPCell imageCell(String resourcePath, float maxWidth, float maxHeight) {
+        PdfPCell cell = new PdfPCell();
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPadding(2);
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        try {
+            Image image = Image.getInstance(SDOFormPDFService.class.getResource(resourcePath));
+            image.scaleToFit(maxWidth, maxHeight);
+            image.setAlignment(Image.ALIGN_CENTER);
+            cell.addElement(image);
+        } catch (Exception ignored) {}
+        return cell;
+    }
+
+    private static PdfPTable nameLine(Athlete athlete, Font labelFont, Font valueFont, Font captionFont)
+            throws DocumentException {
+        PdfPTable table = new PdfPTable(4);
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{0.9f, 2.7f, 2.7f, 0.9f});
+        table.addCell(plainLabelCell("Name:", labelFont));
+        table.addCell(valueCaptionCell(athlete.getLastName(), "(Last)", 24, valueFont, captionFont));
+        table.addCell(valueCaptionCell(athlete.getFirstName(), "(First)", 24, valueFont, captionFont));
+        table.addCell(valueCaptionCell(athlete.getMiddleInitial(), "(M.I.)", 8, valueFont, captionFont));
+        return table;
+    }
+
+    private static PdfPTable parentLine(Athlete athlete, Font labelFont, Font valueFont, Font captionFont)
+            throws DocumentException {
+        PdfPTable table = new PdfPTable(3);
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{0.9f, 2.7f, 2.7f});
+        table.addCell(plainLabelCell("Parents:", labelFont));
+        table.addCell(valueCaptionCell(athlete.getFatherName(), "Father's Name", 30, valueFont, captionFont));
+        table.addCell(valueCaptionCell(athlete.getMotherName(), "Mother/Guardian", 30, valueFont, captionFont));
+        return table;
+    }
+
+    private static PdfPTable personalLine(float[] widths, Font labelFont, Font valueFont,
+                                          String... labelsAndValues) throws DocumentException {
+        if (labelsAndValues.length != widths.length * 2) {
+            throw new IllegalArgumentException("Each personal-data column needs one label and value.");
+        }
+        PdfPTable table = new PdfPTable(widths.length);
+        table.setWidthPercentage(100);
+        table.setWidths(widths);
+        for (int i = 0; i < labelsAndValues.length; i += 2) {
+            Phrase phrase = new Phrase();
+            phrase.add(new Chunk(labelsAndValues[i] + ": ", labelFont));
+            phrase.add(new Chunk(ns(labelsAndValues[i + 1]), valueFont));
+            PdfPCell cell = new PdfPCell(phrase);
+            cell.setBorder(Rectangle.BOTTOM);
+            cell.setBorderWidth(0.55f);
+            cell.setPaddingLeft(3);
+            cell.setPaddingRight(5);
+            cell.setPaddingTop(2);
+            cell.setPaddingBottom(2);
+            cell.setMinimumHeight(17);
+            cell.setVerticalAlignment(Element.ALIGN_BOTTOM);
+            table.addCell(cell);
+        }
+        return table;
+    }
+
+    private static PdfPCell plainLabelCell(String label, Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(label, font));
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPadding(3);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        return cell;
+    }
+
+    private static PdfPCell valueCaptionCell(String value, String caption, int minimumCharacters,
+                                             Font valueFont, Font captionFont) {
+        PdfPCell cell = new PdfPCell();
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPadding(1);
+        String text = ns(value);
+        int padding = Math.max(2, minimumCharacters - text.length());
+        Chunk underlined = new Chunk(" " + text + " ".repeat(padding), valueFont);
+        underlined.setUnderline(0.55f, -1.5f);
+        Paragraph valueLine = new Paragraph(underlined);
+        valueLine.setAlignment(Element.ALIGN_CENTER);
+        valueLine.setLeading(9f);
+        valueLine.setSpacingAfter(0);
+        cell.addElement(valueLine);
+        Paragraph captionLine = new Paragraph(caption, captionFont);
+        captionLine.setAlignment(Element.ALIGN_CENTER);
+        captionLine.setLeading(7f);
+        captionLine.setSpacingAfter(0);
+        cell.addElement(captionLine);
+        return cell;
+    }
+
     private static PdfPCell fieldCell(String label, String value, Font labelFont, Font valueFont) {
         Phrase phrase = new Phrase();
         phrase.add(new Chunk(label + ": ", labelFont));
@@ -317,13 +438,6 @@ public final class SDOFormPDFService {
         cell.setMinimumHeight(19);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         return cell;
-    }
-
-    private static void addField(PdfPTable table, String label, String value, int colspan,
-                                 Font labelFont, Font valueFont) {
-        PdfPCell cell = fieldCell(label, value, labelFont, valueFont);
-        cell.setColspan(colspan);
-        table.addCell(cell);
     }
 
     private static Athlete.LowerMeet findLowerMeet(List<Athlete.LowerMeet> rows, String meetLevel) {
@@ -431,14 +545,23 @@ public final class SDOFormPDFService {
     }
 
     private static final class SdoLetterhead extends PdfPageEventHelper {
+        private final boolean includeHeader;
         private final byte[] kagawaran = resource("/images/kagawaran-ng-edukasyon-logo.png");
         private final byte[] deped = resource("/images/DepED-logo.png");
         private final byte[] bagongPilipinas = resource("/images/bagong-pilipinas-logo.png");
         private final byte[] sdoSeal = resource("/images/SDO-Seal.png");
 
+        private SdoLetterhead() {
+            this(true);
+        }
+
+        private SdoLetterhead(boolean includeHeader) {
+            this.includeHeader = includeHeader;
+        }
+
         @Override public void onEndPage(PdfWriter writer, Document document) {
             try {
-                drawHeader(writer.getDirectContent(), document);
+                if (includeHeader) drawHeader(writer.getDirectContent(), document);
                 drawFooter(writer.getDirectContent(), document);
             } catch (Exception e) {
                 throw new RuntimeException("Could not render the SDO letterhead", e);
