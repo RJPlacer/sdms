@@ -4,6 +4,7 @@ import com.sdms.model.Athlete;
 import com.sdms.service.DatabaseService;
 import com.sdms.service.PDFExportService;
 import com.sdms.service.QRCodeService;
+import com.sdms.service.SDOFormPDFService;
 import com.sdms.sharing.SharedAssetService;
 import com.sdms.util.SessionManager;
 import javafx.collections.FXCollections;
@@ -139,7 +140,11 @@ public class AthleteController {
     @FXML private void onExportReport() {
         Athlete sel = athleteTable.getSelectionModel().getSelectedItem();
         if (sel == null) { showInfo("Select an athlete first."); return; }
-        try { Desktop.getDesktop().open(new File(PDFExportService.exportAthleteReport(sel))); }
+        try {
+            sel.setPreviousPalaroRecords(DatabaseService.getInstance().getAthletePalaroRecords(sel.getId()));
+            sel.setLowerMeetRecords(DatabaseService.getInstance().getAthleteLowerMeets(sel.getId()));
+            Desktop.getDesktop().open(new File(SDOFormPDFService.exportAthleteRecord(sel)));
+        }
         catch (Exception e) { showError("Report export failed: " + e.getMessage()); }
     }
 

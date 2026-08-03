@@ -61,7 +61,9 @@ Dashboard shows summary counts for:
 
 ### Export
 - Export ID Card: creates a card PDF and QR if needed.
-- Export Report: creates full athlete report PDF.
+- Export SDO PDF: creates the official one-page Athlete Record with the SDO City
+  of Baliwag header, footer, photograph box, participation tables, certification,
+  and signature sections.
 
 ## 5. Official Module
 
@@ -95,7 +97,9 @@ Same workflow as Officials:
 - Select a record and use Edit or Delete.
 
 ### Export
-- Export Report creates equipment PDF report.
+- Export SDO PDF creates the official Memorandum Receipt for Equipment,
+  Semi-Expendable and Non-Expendable Property with the current SDO City of
+  Baliwag letterhead, equipment table, acknowledgement, and signature areas.
 
 ## 8. Global Search
 

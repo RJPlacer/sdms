@@ -20,7 +20,7 @@
                 <Button text="✏ Edit"          styleClass="btn-secondary" onAction="#onEdit"/>
                 <Button text="🗑 Delete"        styleClass="btn-danger"    onAction="#onDelete"/>
                 <Region HBox.hgrow="ALWAYS"/>
-                <Button text="📄 Export Report" styleClass="btn-secondary" onAction="#onExportReport"/>
+                <Button text="📄 Export SDO PDF" styleClass="btn-secondary" onAction="#onExportReport"/>
             </HBox>
         </VBox>
     </top>

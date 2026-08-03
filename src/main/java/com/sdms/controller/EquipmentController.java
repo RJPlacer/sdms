@@ -2,7 +2,7 @@ package com.sdms.controller;
 
 import com.sdms.model.Equipment;
 import com.sdms.service.DatabaseService;
-import com.sdms.service.PDFExportService;
+import com.sdms.service.SDOFormPDFService;
 import javafx.collections.FXCollections;
 import com.sdms.util.SessionManager;
 import javafx.collections.ObservableList;
@@ -95,7 +95,7 @@ public class EquipmentController {
         try {
             // Load items before export
             sel.setItems(DatabaseService.getInstance().getEquipmentItems(sel.getId()));
-            String path = PDFExportService.exportEquipmentReport(sel);
+            String path = SDOFormPDFService.exportEquipmentMemorandum(sel);
             Desktop.getDesktop().open(new File(path));
         } catch (Exception e) { showError("Export failed: " + e.getMessage()); }
     }

@@ -22,7 +22,7 @@ Verification commands:
   - src/main/resources/images/app-logo.ico
 - Confirm launcher class is AppLauncher in packaging settings
 - Confirm shaded JAR builds:
-  - target/sports-delegation-ms-1.5.1-shaded.jar
+  - target/sports-delegation-ms-1.6.0-shaded.jar
 
 ## 3. Build Installer
 
@@ -30,10 +30,10 @@ Recommended command:
 - build-installer.cmd -CleanOutput
 
 Expected output:
-- dist/Athlete Track-1.5.1.exe
+- dist/Athlete Track-1.6.0.exe
 
 For later releases, increase the three-part version:
-- build-installer.cmd -AppVersion 1.5.1
+- build-installer.cmd -AppVersion 1.6.0
 
 Do not change the upgrade UUID in `build-installer.ps1`. Users can close the
 app and run the newer installer directly over the installed version. Their
@@ -54,7 +54,7 @@ database and files remain in the local application-data directory.
 - Open each module:
   - Dashboard, Athletes, Officials, Coaches, Equipment
 - Create one test record in each core module
-- Export one ID card and one report
+- Export one ID card, one SDO Athlete Record, and one SDO Equipment Memorandum
 - Test batch print and roster export
 - Start Multi-PC Sharing on a private test network
 - Pair a second Windows computer and verify encoder changes are visible there
@@ -100,7 +100,7 @@ If app does not open:
 ## 10. Release Handover Package
 
 Include these files for delivery:
-- dist/Athlete Track-1.5.1.exe
+- dist/Athlete Track-1.6.0.exe
 - docs/USER_MANUAL.md
 - docs/DEPLOYMENT_CHECKLIST.md
 - docs/SYSTEM_DOCUMENTATION.md
