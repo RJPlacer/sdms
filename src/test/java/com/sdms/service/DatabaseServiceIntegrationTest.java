@@ -40,6 +40,7 @@ class DatabaseServiceIntegrationTest {
             database.saveAthlete(first);
             database.saveAthlete(second);
             database.saveAthlete(third);
+            assertEquals("Grade 6", database.getAllAthletes().get(0).getGradeLevel());
 
             String verificationToken = database.getOrCreateVerificationToken("ATHLETE", first.getId());
             assertEquals(verificationToken,
@@ -82,6 +83,7 @@ class DatabaseServiceIntegrationTest {
         Athlete athlete = new Athlete();
         athlete.setLastName(lastName);
         athlete.setFirstName("Test");
+        athlete.setGradeLevel("Grade 6");
         return athlete;
     }
 }

@@ -24,7 +24,7 @@ public class AthleteFormController {
     // ── A. Personal Data ──────────────────────────────────────────────────────
     @FXML private TextField txtLastName, txtFirstName, txtMiddleInitial;
     @FXML private ComboBox<String> cmbSex;
-    @FXML private TextField txtLRN, txtContactNo, txtAge, txtPlaceOfBirth, txtSchool;
+    @FXML private TextField txtLRN, txtContactNo, txtAge, txtPlaceOfBirth, txtSchool, txtGradeLevel;
     @FXML private DatePicker dpDateOfBirth;
     @FXML private TextArea txaSchoolAddress, txaPresentAddress;
     @FXML private ImageView imgPhoto;
@@ -97,6 +97,7 @@ public class AthleteFormController {
         txtAge.setText(a.getAge() > 0 ? String.valueOf(a.getAge()) : "");
         setText(txtPlaceOfBirth, a.getPlaceOfBirth());
         setText(txtSchool, a.getSchool());
+        setText(txtGradeLevel, a.getGradeLevel());
         setText(txaSchoolAddress, a.getSchoolAddress());
         setText(txaPresentAddress, a.getPresentAddress());
         setText(txtMotherName, a.getMotherName());
@@ -202,6 +203,7 @@ public class AthleteFormController {
         athlete.setAge(dpDateOfBirth.getValue() != null ? AgeUtil.calculate(dpDateOfBirth.getValue()) : 0);
         athlete.setPlaceOfBirth(txtPlaceOfBirth.getText().trim());
         athlete.setSchool(txtSchool.getText().trim());
+        athlete.setGradeLevel(txtGradeLevel.getText().trim());
         athlete.setSchoolAddress(txaSchoolAddress.getText().trim());
         athlete.setPresentAddress(txaPresentAddress.getText().trim());
         athlete.setPhotoPath(selectedPhotoPath);

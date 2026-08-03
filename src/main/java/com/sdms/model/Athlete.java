@@ -24,6 +24,7 @@ public class Athlete {
     private final IntegerProperty age = new SimpleIntegerProperty();
     private final StringProperty placeOfBirth = new SimpleStringProperty();
     private final StringProperty school = new SimpleStringProperty();
+    private final StringProperty gradeLevel = new SimpleStringProperty();
     private final StringProperty schoolAddress = new SimpleStringProperty();
     private final StringProperty presentAddress = new SimpleStringProperty();
     private final StringProperty photoPath = new SimpleStringProperty();   // path to 1x1 photo
@@ -138,6 +139,10 @@ public class Athlete {
     public String getSchool() { return school.get(); }
     public StringProperty schoolProperty() { return school; }
     public void setSchool(String v) { school.set(v); }
+
+    public String getGradeLevel() { return gradeLevel.get(); }
+    public StringProperty gradeLevelProperty() { return gradeLevel; }
+    public void setGradeLevel(String v) { gradeLevel.set(v); }
 
     public String getSchoolAddress() { return schoolAddress.get(); }
     public StringProperty schoolAddressProperty() { return schoolAddress; }

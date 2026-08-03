@@ -66,6 +66,7 @@ class SDOFormPDFServiceTest {
         athlete.setAge(12);
         athlete.setPlaceOfBirth("City of Baliwag, Bulacan");
         athlete.setSchool("Virgen Delas Flores Elementary School");
+        athlete.setGradeLevel("Grade 6");
         athlete.setSchoolAddress("City of Baliwag, Bulacan");
         athlete.setPresentAddress("Mercury Street, City of Baliwag, Bulacan");
         athlete.setFatherName("Juan Santos");

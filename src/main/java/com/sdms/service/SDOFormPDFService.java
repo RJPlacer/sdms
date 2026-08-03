@@ -40,6 +40,11 @@ public final class SDOFormPDFService {
     private static final Color BLACK = Color.BLACK;
     private static final Color HEADER_FILL = new Color(242, 244, 247);
     private static final Color LIGHT_FILL = new Color(249, 250, 251);
+    private static final List<String> MEET_LEVELS = List.of(
+        "School Sports Meet",
+        "District/Unit Meet",
+        "Division/Provincial Meet",
+        "Regional Meet");
 
     private SDOFormPDFService() {}
 
@@ -75,22 +80,24 @@ public final class SDOFormPDFService {
         identity.setWidthPercentage(100);
         identity.setWidths(new float[]{5.2f, 1.25f});
 
-        PdfPTable details = new PdfPTable(2);
+        PdfPTable details = new PdfPTable(6);
         details.setWidthPercentage(100);
-        details.addCell(fieldCell("Name", athlete.getFullName(), bodyBold, body));
-        details.addCell(fieldCell("Athlete ID", athlete.getAthleteId(), bodyBold, body));
-        details.addCell(fieldCell("Sex", athlete.getSex(), bodyBold, body));
-        details.addCell(fieldCell("Learner Reference Number (LRN)", athlete.getLearnerRefNumber(), bodyBold, body));
-        details.addCell(fieldCell("Date of Birth", date(athlete.getDateOfBirth()), bodyBold, body));
-        details.addCell(fieldCell("Age", athlete.getAge() > 0 ? Integer.toString(athlete.getAge()) : "", bodyBold, body));
-        details.addCell(fieldCell("Contact Number", athlete.getContactNo(), bodyBold, body));
-        details.addCell(fieldCell("Place of Birth", athlete.getPlaceOfBirth(), bodyBold, body));
-        details.addCell(fieldCell("School", athlete.getSchool(), bodyBold, body));
-        details.addCell(fieldCell("Address of School", athlete.getSchoolAddress(), bodyBold, body));
-        details.addCell(fieldCell("Present Address", athlete.getPresentAddress(), bodyBold, body));
-        details.addCell(fieldCell("Address of Parents/Guardian", athlete.getGuardianAddress(), bodyBold, body));
-        details.addCell(fieldCell("Father's Name", athlete.getFatherName(), bodyBold, body));
-        details.addCell(fieldCell("Mother/Guardian", athlete.getMotherName(), bodyBold, body));
+        addField(details, "Last Name", athlete.getLastName(), 2, bodyBold, body);
+        addField(details, "First Name", athlete.getFirstName(), 2, bodyBold, body);
+        addField(details, "M.I.", athlete.getMiddleInitial(), 2, bodyBold, body);
+        addField(details, "Sex", athlete.getSex(), 2, bodyBold, body);
+        addField(details, "Learner Reference Number (LRN)", athlete.getLearnerRefNumber(), 2, bodyBold, body);
+        addField(details, "Contact Number", athlete.getContactNo(), 2, bodyBold, body);
+        addField(details, "Date of Birth", date(athlete.getDateOfBirth()), 2, bodyBold, body);
+        addField(details, "Age", athlete.getAge() > 0 ? Integer.toString(athlete.getAge()) : "", 1, bodyBold, body);
+        addField(details, "Place of Birth", athlete.getPlaceOfBirth(), 3, bodyBold, body);
+        addField(details, "School", athlete.getSchool(), 4, bodyBold, body);
+        addField(details, "Grade Level", athlete.getGradeLevel(), 2, bodyBold, body);
+        addField(details, "Address of School", athlete.getSchoolAddress(), 6, bodyBold, body);
+        addField(details, "Present Address", athlete.getPresentAddress(), 6, bodyBold, body);
+        addField(details, "Father's Name", athlete.getFatherName(), 3, bodyBold, body);
+        addField(details, "Mother/Guardian", athlete.getMotherName(), 3, bodyBold, body);
+        addField(details, "Address of Parents/Guardian", athlete.getGuardianAddress(), 6, bodyBold, body);
 
         PdfPCell detailCell = new PdfPCell();
         detailCell.setPadding(0);
@@ -100,17 +107,15 @@ public final class SDOFormPDFService {
         identity.setSpacingAfter(5);
         document.add(identity);
 
-        boolean hasPrevious = athlete.getPreviousPalaroRecords() != null
-            && !athlete.getPreviousPalaroRecords().isEmpty();
         Paragraph participation = sectionTitle(
-            "B. Participation in the previous Palarong Pambansa:  Yes "
-                + (hasPrevious ? "[X]" : "[ ]") + "   No " + (hasPrevious ? "[ ]" : "[X]"),
+            "B. Participation in the previous Palarong Pambansa:  Yes _____  No _____  "
+                + "If Yes, kindly fill up the table below",
             section);
         document.add(participation);
         PdfPTable previous = dataTable(new float[]{1.1f, 2.1f, 2f, 1.5f}, smallBold,
             "Year of Participation", "Sports Event", "Venue", "Remarks");
         List<Athlete.PalaroPrevious> previousRows = athlete.getPreviousPalaroRecords();
-        int previousCount = Math.max(3, previousRows == null ? 0 : previousRows.size());
+        int previousCount = 4;
         for (int i = 0; i < previousCount; i++) {
             Athlete.PalaroPrevious row = previousRows != null && i < previousRows.size() ? previousRows.get(i) : null;
             addDataRow(previous, small, 15,
@@ -126,17 +131,28 @@ public final class SDOFormPDFService {
         PdfPTable lower = dataTable(new float[]{1.4f, 2f, 2f, 1.4f}, smallBold,
             "Inclusive Dates", "Sports Event", "Athletic Meet", "Remarks");
         List<Athlete.LowerMeet> lowerRows = athlete.getLowerMeetRecords();
-        int lowerCount = Math.max(4, lowerRows == null ? 0 : lowerRows.size());
-        for (int i = 0; i < lowerCount; i++) {
-            Athlete.LowerMeet row = lowerRows != null && i < lowerRows.size() ? lowerRows.get(i) : null;
+        for (String meetLevel : MEET_LEVELS) {
+            Athlete.LowerMeet row = findLowerMeet(lowerRows, meetLevel);
             addDataRow(lower, small, 15,
                 row == null ? "" : row.inclusiveDates,
                 row == null ? "" : row.sportsEvent,
-                row == null ? "" : row.athleticMeet,
+                meetLevel,
                 row == null ? "" : row.remarks);
         }
-        lower.setSpacingAfter(5);
+        lower.setSpacingAfter(1);
         document.add(lower);
+
+        PdfPTable athleteSignature = new PdfPTable(2);
+        athleteSignature.setWidthPercentage(100);
+        athleteSignature.setWidths(new float[]{1.2f, 1f});
+        athleteSignature.addCell(borderless("(Use separate sheet if necessary.)", tiny, Element.ALIGN_LEFT));
+        PdfPCell signature = borderless(
+            "_______________________________\nAthlete's Signature over Printed Name",
+            small, Element.ALIGN_CENTER);
+        signature.setPaddingTop(2);
+        signature.setPaddingBottom(3);
+        athleteSignature.addCell(signature);
+        document.add(athleteSignature);
 
         document.add(sectionTitle("D. CERTIFICATION ON ATHLETE'S PARTICIPATION", section));
         Paragraph certification = new Paragraph(
@@ -148,14 +164,19 @@ public final class SDOFormPDFService {
 
         PdfPTable cert = dataTable(new float[]{1.3f, 2f, 1.6f, 1.6f}, smallBold,
             "Meet", "Name and Signature of Coach", "Division Sports Officer (DSO)", "Regional Sports Officer (RSO)");
-        addDataRow(cert, small, 20,
-            athlete.getCertMeet(), athlete.getCertCoachName(), athlete.getCertDsoName(), athlete.getCertRsoName());
-        addDataRow(cert, small, 15, "School Sports Meet", "", "", "");
-        addDataRow(cert, small, 15, "District/Unit Meet", "", "", "");
-        addDataRow(cert, small, 15, "Division/Provincial Meet", "", "", "");
-        addDataRow(cert, small, 15, "Regional Meet", "", "", "");
-        cert.setSpacingAfter(5);
+        for (String meetLevel : MEET_LEVELS) {
+            boolean selected = sameMeet(athlete.getCertMeet(), meetLevel);
+            addDataRow(cert, small, 15, meetLevel,
+                selected ? athlete.getCertCoachName() : "",
+                selected ? athlete.getCertDsoName() : "",
+                selected ? athlete.getCertRsoName() : "");
+        }
+        cert.setSpacingAfter(2);
         document.add(cert);
+
+        Paragraph certificationNote = new Paragraph("(Use separate sheet if necessary.)", tiny);
+        certificationNote.setSpacingAfter(2);
+        document.add(certificationNote);
 
         document.add(new Paragraph("Screened by:", bodyBold));
         document.add(signatureTable(small,
@@ -296,6 +317,40 @@ public final class SDOFormPDFService {
         cell.setMinimumHeight(19);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         return cell;
+    }
+
+    private static void addField(PdfPTable table, String label, String value, int colspan,
+                                 Font labelFont, Font valueFont) {
+        PdfPCell cell = fieldCell(label, value, labelFont, valueFont);
+        cell.setColspan(colspan);
+        table.addCell(cell);
+    }
+
+    private static Athlete.LowerMeet findLowerMeet(List<Athlete.LowerMeet> rows, String meetLevel) {
+        if (rows == null) return null;
+        for (Athlete.LowerMeet row : rows) {
+            if (row != null && sameMeet(row.athleticMeet, meetLevel)) return row;
+        }
+        return null;
+    }
+
+    private static boolean sameMeet(String value, String meetLevel) {
+        String valueKey = meetKey(value);
+        String levelKey = meetKey(meetLevel);
+        if (valueKey.isBlank()) return false;
+        if (valueKey.equals(levelKey)) return true;
+        if (levelKey.startsWith("school")) return valueKey.contains("school");
+        if (levelKey.startsWith("district")) {
+            return valueKey.contains("district") || valueKey.contains("unit");
+        }
+        if (levelKey.startsWith("division")) {
+            return valueKey.contains("division") || valueKey.contains("provincial");
+        }
+        return levelKey.startsWith("regional") && valueKey.contains("regional");
+    }
+
+    private static String meetKey(String value) {
+        return ns(value).toLowerCase().replaceAll("[^a-z]", "");
     }
 
     private static PdfPCell photoCell(String photoPath, Font hintFont) {

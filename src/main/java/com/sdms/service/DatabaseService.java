@@ -86,7 +86,7 @@ public class DatabaseService {
     private void createTables() throws SQLException {
         Statement st = connection.createStatement();
         String id = idColumn();
-        st.execute("CREATE TABLE IF NOT EXISTS athletes (id " + id + ", athlete_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, learner_ref TEXT, contact_no TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, school TEXT, school_address TEXT, present_address TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE, mother_name TEXT, father_name TEXT, guardian_address TEXT, cert_meet TEXT, cert_coach_name TEXT, cert_dso_name TEXT, cert_rso_name TEXT)");
+        st.execute("CREATE TABLE IF NOT EXISTS athletes (id " + id + ", athlete_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, learner_ref TEXT, contact_no TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, school TEXT, grade_level TEXT, school_address TEXT, present_address TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE, mother_name TEXT, father_name TEXT, guardian_address TEXT, cert_meet TEXT, cert_coach_name TEXT, cert_dso_name TEXT, cert_rso_name TEXT)");
         st.execute("CREATE TABLE IF NOT EXISTS athlete_palaro_previous (id " + id + ", athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE, year TEXT, sports_event TEXT, venue TEXT, remarks TEXT)");
         st.execute("CREATE TABLE IF NOT EXISTS athlete_lower_meets (id " + id + ", athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE, inclusive_dates TEXT, sports_event TEXT, athletic_meet TEXT, remarks TEXT)");
         st.execute("CREATE TABLE IF NOT EXISTS officials (id " + id + ", official_id TEXT UNIQUE, last_name TEXT, first_name TEXT, middle_initial TEXT, sex TEXT, mobile_phone TEXT, date_of_birth TEXT, age INTEGER, place_of_birth TEXT, current_position TEXT, years_in_service INTEGER, school TEXT, employee_number TEXT, school_address TEXT, present_address TEXT, emergency_contact_name TEXT, emergency_contact_no TEXT, photo_path TEXT, qr_code_path TEXT, verification_token TEXT UNIQUE)");
@@ -102,6 +102,11 @@ public class DatabaseService {
         st.execute("CREATE TABLE IF NOT EXISTS equipment_items (id " + id + ", equipment_id INTEGER REFERENCES equipment(id) ON DELETE CASCADE, qty INTEGER, unit TEXT, make_and_description TEXT, date_borrowed TEXT, date_returned TEXT, remarks TEXT)");
         st.execute("CREATE TABLE IF NOT EXISTS id_sequences (sequence_key TEXT PRIMARY KEY, next_value INTEGER NOT NULL)");
         st.close();
+
+        if (!hasColumn("athletes", "grade_level")) {
+            connection.createStatement().execute(
+                "ALTER TABLE athletes ADD COLUMN grade_level TEXT");
+        }
 
         for (String table : List.of("athletes", "officials", "coaches")) {
             if (!hasColumn(table, "verification_token")) {
@@ -291,11 +296,11 @@ public class DatabaseService {
         if (a.getAthleteId() == null || a.getAthleteId().isBlank())
             a.setAthleteId(generateId("ATH", "athletes", "athlete_id"));
         if (a.getId() == 0) {
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO athletes (athlete_id,last_name,first_name,middle_initial,sex,learner_ref,contact_no,date_of_birth,age,place_of_birth,school,school_address,present_address,photo_path,qr_code_path,mother_name,father_name,guardian_address,cert_meet,cert_coach_name,cert_dso_name,cert_rso_name) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO athletes (athlete_id,last_name,first_name,middle_initial,sex,learner_ref,contact_no,date_of_birth,age,place_of_birth,school,grade_level,school_address,present_address,photo_path,qr_code_path,mother_name,father_name,guardian_address,cert_meet,cert_coach_name,cert_dso_name,cert_rso_name) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
             bindAthlete(ps, a); ps.executeUpdate();
             ResultSet k = ps.getGeneratedKeys(); if (k.next()) a.setId(k.getInt(1));
         } else {
-            PreparedStatement ps = connection.prepareStatement("UPDATE athletes SET last_name=?,first_name=?,middle_initial=?,sex=?,learner_ref=?,contact_no=?,date_of_birth=?,age=?,place_of_birth=?,school=?,school_address=?,present_address=?,photo_path=?,qr_code_path=?,mother_name=?,father_name=?,guardian_address=?,cert_meet=?,cert_coach_name=?,cert_dso_name=?,cert_rso_name=? WHERE id=?");
+            PreparedStatement ps = connection.prepareStatement("UPDATE athletes SET last_name=?,first_name=?,middle_initial=?,sex=?,learner_ref=?,contact_no=?,date_of_birth=?,age=?,place_of_birth=?,school=?,grade_level=?,school_address=?,present_address=?,photo_path=?,qr_code_path=?,mother_name=?,father_name=?,guardian_address=?,cert_meet=?,cert_coach_name=?,cert_dso_name=?,cert_rso_name=? WHERE id=?");
             bindAthleteUpdate(ps, a); ps.executeUpdate();
         }
         return a.getId();
@@ -383,7 +388,8 @@ public class DatabaseService {
         a.setLearnerRefNumber(rs.getString("learner_ref")); a.setContactNo(rs.getString("contact_no"));
         String dob = rs.getString("date_of_birth"); if (dob!=null) a.setDateOfBirth(LocalDate.parse(dob));
         a.setAge(rs.getInt("age")); a.setPlaceOfBirth(rs.getString("place_of_birth"));
-        a.setSchool(rs.getString("school")); a.setSchoolAddress(rs.getString("school_address"));
+        a.setSchool(rs.getString("school")); a.setGradeLevel(rs.getString("grade_level"));
+        a.setSchoolAddress(rs.getString("school_address"));
         a.setPresentAddress(rs.getString("present_address")); a.setPhotoPath(rs.getString("photo_path"));
         a.setQrCodePath(rs.getString("qr_code_path")); a.setMotherName(rs.getString("mother_name"));
         a.setFatherName(rs.getString("father_name")); a.setGuardianAddress(rs.getString("guardian_address"));
@@ -397,21 +403,21 @@ public class DatabaseService {
         ps.setString(4,a.getMiddleInitial()); ps.setString(5,a.getSex()); ps.setString(6,a.getLearnerRefNumber());
         ps.setString(7,a.getContactNo()); ps.setString(8,a.getDateOfBirth()!=null?a.getDateOfBirth().toString():null);
         ps.setInt(9,a.getAge()); ps.setString(10,a.getPlaceOfBirth()); ps.setString(11,a.getSchool());
-        ps.setString(12,a.getSchoolAddress()); ps.setString(13,a.getPresentAddress()); ps.setString(14,a.getPhotoPath());
-        ps.setString(15,a.getQrCodePath()); ps.setString(16,a.getMotherName()); ps.setString(17,a.getFatherName());
-        ps.setString(18,a.getGuardianAddress()); ps.setString(19,a.getCertMeet()); ps.setString(20,a.getCertCoachName());
-        ps.setString(21,a.getCertDsoName()); ps.setString(22,a.getCertRsoName());
+        ps.setString(12,a.getGradeLevel()); ps.setString(13,a.getSchoolAddress()); ps.setString(14,a.getPresentAddress());
+        ps.setString(15,a.getPhotoPath()); ps.setString(16,a.getQrCodePath()); ps.setString(17,a.getMotherName());
+        ps.setString(18,a.getFatherName()); ps.setString(19,a.getGuardianAddress()); ps.setString(20,a.getCertMeet());
+        ps.setString(21,a.getCertCoachName()); ps.setString(22,a.getCertDsoName()); ps.setString(23,a.getCertRsoName());
     }
 
     private void bindAthleteUpdate(PreparedStatement ps, Athlete a) throws SQLException {
         ps.setString(1,a.getLastName()); ps.setString(2,a.getFirstName()); ps.setString(3,a.getMiddleInitial());
         ps.setString(4,a.getSex()); ps.setString(5,a.getLearnerRefNumber()); ps.setString(6,a.getContactNo());
         ps.setString(7,a.getDateOfBirth()!=null?a.getDateOfBirth().toString():null); ps.setInt(8,a.getAge());
-        ps.setString(9,a.getPlaceOfBirth()); ps.setString(10,a.getSchool()); ps.setString(11,a.getSchoolAddress());
-        ps.setString(12,a.getPresentAddress()); ps.setString(13,a.getPhotoPath()); ps.setString(14,a.getQrCodePath());
-        ps.setString(15,a.getMotherName()); ps.setString(16,a.getFatherName()); ps.setString(17,a.getGuardianAddress());
-        ps.setString(18,a.getCertMeet()); ps.setString(19,a.getCertCoachName()); ps.setString(20,a.getCertDsoName());
-        ps.setString(21,a.getCertRsoName()); ps.setInt(22,a.getId());
+        ps.setString(9,a.getPlaceOfBirth()); ps.setString(10,a.getSchool()); ps.setString(11,a.getGradeLevel());
+        ps.setString(12,a.getSchoolAddress()); ps.setString(13,a.getPresentAddress()); ps.setString(14,a.getPhotoPath());
+        ps.setString(15,a.getQrCodePath()); ps.setString(16,a.getMotherName()); ps.setString(17,a.getFatherName());
+        ps.setString(18,a.getGuardianAddress()); ps.setString(19,a.getCertMeet()); ps.setString(20,a.getCertCoachName());
+        ps.setString(21,a.getCertDsoName()); ps.setString(22,a.getCertRsoName()); ps.setInt(23,a.getId());
     }
 
     // ── Official ──────────────────────────────────────────────────────────────

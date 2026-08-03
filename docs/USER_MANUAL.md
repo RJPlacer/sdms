@@ -44,7 +44,7 @@ Dashboard shows summary counts for:
 ### Add Athlete
 1. Open Athletes.
 2. Click Add.
-3. Fill required details.
+3. Fill the personal details, including Grade Level.
 4. Add optional child records (Previous Palaro, Lower Meets).
 5. Click Save.
 
@@ -61,9 +61,9 @@ Dashboard shows summary counts for:
 
 ### Export
 - Export ID Card: creates a card PDF and QR if needed.
-- Export SDO PDF: creates the official one-page Athlete Record with the SDO City
-  of Baliwag header, footer, photograph box, participation tables, certification,
-  and signature sections.
+- Export SDO PDF: creates the official one-page Athlete Record with split name
+  fields, Grade Level, fixed meet rows, the athlete signature line, and the SDO
+  City of Baliwag header and footer.
 
 ## 5. Official Module
 

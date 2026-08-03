@@ -42,12 +42,14 @@
                     <TextField fx:id="txtPlaceOfBirth"  GridPane.rowIndex="6" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
                     <Label text="School"                GridPane.rowIndex="7" GridPane.columnIndex="0"/>
                     <TextField fx:id="txtSchool"        GridPane.rowIndex="7" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity"/>
-                    <Label text="Address of School"     GridPane.rowIndex="8" GridPane.columnIndex="0"/>
-                    <TextArea  fx:id="txaSchoolAddress" GridPane.rowIndex="8" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity" prefRowCount="2"/>
-                    <Label text="Present Address"       GridPane.rowIndex="9" GridPane.columnIndex="0"/>
-                    <TextArea  fx:id="txaPresentAddress" GridPane.rowIndex="9" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity" prefRowCount="2"/>
-                    <Label text="Photo (1x1)"           GridPane.rowIndex="10" GridPane.columnIndex="0"/>
-                    <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="10" GridPane.columnIndex="1" GridPane.columnSpan="3">
+                    <Label text="Grade Level"           GridPane.rowIndex="8" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtGradeLevel"    GridPane.rowIndex="8" GridPane.columnIndex="1" promptText="e.g. Grade 6"/>
+                    <Label text="Address of School"     GridPane.rowIndex="9" GridPane.columnIndex="0"/>
+                    <TextArea  fx:id="txaSchoolAddress" GridPane.rowIndex="9" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity" prefRowCount="2"/>
+                    <Label text="Present Address"       GridPane.rowIndex="10" GridPane.columnIndex="0"/>
+                    <TextArea  fx:id="txaPresentAddress" GridPane.rowIndex="10" GridPane.columnIndex="1" GridPane.columnSpan="3" maxWidth="Infinity" prefRowCount="2"/>
+                    <Label text="Photo (1x1)"           GridPane.rowIndex="11" GridPane.columnIndex="0"/>
+                    <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="11" GridPane.columnIndex="1" GridPane.columnSpan="3">
                         <ImageView fx:id="imgPhoto" fitWidth="80" fitHeight="80" preserveRatio="true"/>
                         <VBox spacing="4">
                             <Button text="Choose Photo…" onAction="#onChoosePhoto" styleClass="btn-secondary"/>
