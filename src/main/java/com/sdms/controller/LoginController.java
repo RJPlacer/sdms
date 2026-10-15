@@ -34,7 +34,7 @@ public class LoginController {
         }
         refreshConnectionLabel();
         try {
-            firstRun = !DatabaseService.getInstance().hasUsers();
+            firstRun = !SharingManager.getInstance().isClient() && !DatabaseService.getInstance().hasUsers();
             configureMode();
         } catch (Exception e) {
             showError("Could not check the user database.");
@@ -61,8 +61,8 @@ public class LoginController {
         }
 
         try {
-            User user = DatabaseService.getInstance().findUserByUsername(username);
-            if (user == null || !PasswordUtil.verify(password, user.getPasswordHash())) {
+            User user = DatabaseService.getInstance().authenticate(username, password);
+            if (user == null) {
                 showError("Invalid username or password.");
                 txtPassword.clear();
                 return;
@@ -70,11 +70,6 @@ public class LoginController {
             if (!user.isActive()) {
                 showError("This account has been deactivated.");
                 return;
-            }
-
-            if (PasswordUtil.needsRehash(user.getPasswordHash())) {
-                user.setPasswordHash(PasswordUtil.hash(password));
-                DatabaseService.getInstance().saveUser(user);
             }
 
             SessionManager.login(user);
@@ -194,7 +189,7 @@ public class LoginController {
             dialog.showAndWait();
             SharingController controller = loader.getController();
             if (controller.isConnectionChanged()) {
-                firstRun = !DatabaseService.getInstance().hasUsers();
+                firstRun = !SharingManager.getInstance().isClient() && !DatabaseService.getInstance().hasUsers();
                 configureMode();
                 txtUsername.clear();
                 txtPassword.clear();

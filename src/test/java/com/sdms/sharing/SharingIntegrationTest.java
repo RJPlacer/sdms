@@ -36,7 +36,7 @@ class SharingIntegrationTest {
             User admin = new User();
             admin.setUsername("sharing-admin");
             admin.setFullName("Sharing Administrator");
-            admin.setPasswordHash(PasswordUtil.hash("sharing-test-password"));
+            admin.setPasswordHash(PasswordUtil.hash("secure-test-password"));
             admin.setRole("ADMIN");
             admin.setActive(true);
             database.saveUser(admin);
@@ -105,25 +105,23 @@ class SharingIntegrationTest {
 
             SharingConfig client = PairingClient.pair("127.0.0.1",
                 sharing.getConfig().getPairingPort(), sharing.getConfig().getPairingCode());
-            try (var remote = DriverManager.getConnection(
-                    "jdbc:h2:tcp://127.0.0.1:" + client.getDatabasePort()
-                        + "/./athlete-track;MODE=LEGACY;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=YEAR,EVENT,DATE,LEVEL,VALUE,USER",
-                    client.getDatabaseUser(), client.getDatabasePassword());
-                 var rs = remote.createStatement().executeQuery("SELECT COUNT(*) FROM athletes")) {
-                assertTrue(rs.next());
-                assertEquals(2, rs.getInt(1));
-            }
+            assertTrue(client.getDatabasePassword().isBlank());
+            assertTrue(client.getDatabaseUser().isBlank());
+            assertFalse(client.getCertificatePin().isBlank());
+            assertThrows(java.sql.SQLException.class, () -> DriverManager.getConnection(
+                "jdbc:h2:tcp://127.0.0.1:" + client.getDatabasePort() + "/./athlete-track", "", ""));
 
             Path image = appDir.resolve("sample.png");
             byte[] imageBytes = new byte[]{1, 2, 3, 4, 5};
             Files.write(image, imageBytes);
             String stored = SharedAssetService.importPhoto(image);
             assertTrue(stored.startsWith("shared:photos/"));
-            String imageUrl = "http://127.0.0.1:" + sharing.getConfig().getPairingPort()
+            String imageUrl = "https://127.0.0.1:" + sharing.getConfig().getPairingPort()
                 + "/assets/" + stored.substring("shared:".length())
                 + "?token=" + sharing.getConfig().getAssetToken();
-            HttpResponse<byte[]> response = HttpClient.newHttpClient().send(
-                HttpRequest.newBuilder(URI.create(imageUrl)).GET().build(),
+            HttpResponse<byte[]> response = TlsSupport.client(client.getCertificatePin()).send(
+                HttpRequest.newBuilder(URI.create(imageUrl))
+                    .header("X-Athlete-Track-Session", SecureSharingTest.login(client, "sharing-admin")).GET().build(),
                 HttpResponse.BodyHandlers.ofByteArray());
             assertEquals(200, response.statusCode());
             assertArrayEquals(imageBytes, response.body());

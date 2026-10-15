@@ -12,6 +12,10 @@ dependency-reduced-pom.xml
 data/
 manual-test-data/
 verification.properties
+sharing.properties
+sharing-tls.p12
+*.sqlite
+*.atbackup
 *.pdf
 
 # Portal dependencies and generated output
@@ -29,3 +33,7 @@ verification-portal/.git-backup/
 *.iml
 Thumbs.db
 .DS_Store
+
+# Private consolidation backups, migrated records, and generated QA
+.consolidation/
+AthleteTrack-1.7.0/

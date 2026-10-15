@@ -49,9 +49,9 @@ public final class SharingManager implements AutoCloseable {
         if (config.getMode() == SharingConfig.Mode.LOCAL) {
             return "jdbc:sqlite:" + AppPaths.dbPath();
         }
-        String host = config.getMode() == SharingConfig.Mode.HOST ? "127.0.0.1" : config.getHost();
-        return "jdbc:h2:tcp://" + host + ":" + config.getDatabasePort()
-            + "/./athlete-track;MODE=LEGACY;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=YEAR,EVENT,DATE,LEVEL,VALUE,USER";
+        if (isClient()) throw new IllegalStateException("Shared clients use authenticated record operations.");
+        return "jdbc:h2:file:" + AppPaths.sharedDatabaseDir().resolve("athlete-track").toAbsolutePath()
+            + ";MODE=LEGACY;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=YEAR,EVENT,DATE,LEVEL,VALUE,USER";
     }
 
     public synchronized String databaseUser() {
@@ -69,7 +69,16 @@ public final class SharingManager implements AutoCloseable {
 
         boolean hasExistingSharedDatabase = Files.exists(
             AppPaths.sharedDatabaseDir().resolve("athlete-track.mv.db"));
+        if (hasExistingSharedDatabase) {
+            SharingConfig retained = SharingConfig.load();
+            if (retained.getDatabasePassword().isBlank()) {
+                throw new IllegalStateException("An existing shared database needs its original connection settings or a backup restore.");
+            }
+            host.setDatabaseUser(retained.getDatabaseUser());
+            host.setDatabasePassword(retained.getDatabasePassword());
+        }
         try {
+            DatabaseService.getInstance().closeConnection();
             close();
             config = host;
             startHostInfrastructure();
@@ -81,7 +90,9 @@ public final class SharingManager implements AutoCloseable {
             host.save();
             BackupService.startAutomaticBackupIfDue();
         } catch (Exception e) {
+            DatabaseService.getInstance().closeConnection();
             close();
+            if (!hasExistingSharedDatabase) BackupService.deleteTree(AppPaths.sharedDatabaseDir());
             config = previous;
             previous.save();
             DatabaseService.getInstance().reinitialize();
@@ -137,11 +148,7 @@ public final class SharingManager implements AutoCloseable {
 
     public synchronized void connectClient(String host, int pairingPort, String code) throws Exception {
         SharingConfig candidate = PairingClient.pair(host, pairingPort, code);
-        ensureH2Driver();
-        try (Connection ignored = DriverManager.getConnection(
-                jdbcUrl(candidate), candidate.getDatabaseUser(), candidate.getDatabasePassword())) {
-            // Connection test succeeded.
-        }
+        RemoteDatabaseClient.available(candidate);
         SharingConfig previous = config;
         try {
             close();
@@ -157,7 +164,7 @@ public final class SharingManager implements AutoCloseable {
     }
 
     public synchronized void useLocalDatabase() throws Exception {
-        SharingConfig local = new SharingConfig();
+        SharingConfig local = config;
         local.setMode(SharingConfig.Mode.LOCAL);
         DatabaseService.getInstance().closeConnection();
         close();
@@ -168,6 +175,7 @@ public final class SharingManager implements AutoCloseable {
 
     public synchronized boolean testConnection() {
         if (config.getMode() == SharingConfig.Mode.LOCAL) return true;
+        if (isClient()) { try { RemoteDatabaseClient.available(config); return true; } catch (Exception e) { return false; } }
         DriverManager.setLoginTimeout((int) Duration.ofSeconds(4).toSeconds());
         try {
             ensureH2Driver();
@@ -216,22 +224,8 @@ public final class SharingManager implements AutoCloseable {
     }
 
     private void startHostInfrastructure() throws Exception {
-        if (databaseServer != null && databaseServer.isRunning(false)) return;
+        if (pairingServer != null) return;
         ensureH2Driver();
-        String baseDir = AppPaths.sharedDatabaseDir().toAbsolutePath().toString();
-        Path databaseFile = AppPaths.sharedDatabaseDir().resolve("athlete-track.mv.db");
-        if (!Files.exists(databaseFile)) {
-            String embeddedUrl = "jdbc:h2:file:"
-                + AppPaths.sharedDatabaseDir().resolve("athlete-track").toAbsolutePath()
-                + ";MODE=LEGACY;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=YEAR,EVENT,DATE,LEVEL,VALUE,USER";
-            try (Connection ignored = DriverManager.getConnection(
-                    embeddedUrl, config.getDatabaseUser(), config.getDatabasePassword())) {
-                // Create the database locally before exposing the existing database through TCP.
-            }
-        }
-        databaseServer = Server.createTcpServer(
-            "-tcpPort", Integer.toString(config.getDatabasePort()),
-            "-tcpAllowOthers", "-baseDir", baseDir).start();
         pairingServer = new PairingServer(config);
         pairingServer.start();
         discoveryService = new NetworkDiscoveryService();
@@ -284,8 +278,8 @@ public final class SharingManager implements AutoCloseable {
     }
 
     private static String jdbcUrl(SharingConfig candidate) {
-        return "jdbc:h2:tcp://" + candidate.getHost() + ":" + candidate.getDatabasePort()
-            + "/./athlete-track;MODE=LEGACY;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=YEAR,EVENT,DATE,LEVEL,VALUE,USER";
+        return "jdbc:h2:file:" + AppPaths.sharedDatabaseDir().resolve("athlete-track").toAbsolutePath()
+            + ";MODE=LEGACY;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=YEAR,EVENT,DATE,LEVEL,VALUE,USER";
     }
 
     private static String randomSecret(int bytes) {

@@ -31,9 +31,6 @@ public class ChangePasswordController {
         if (current.isBlank() || newPw.isBlank() || confirm.isBlank()) {
             showError("All fields are required."); return;
         }
-        if (!PasswordUtil.verify(current, SessionManager.getCurrentUser().getPasswordHash())) {
-            showError("Current password is incorrect."); return;
-        }
         if (newPw.length() < 8) {
             showError("New password must be at least 8 characters."); return;
         }
@@ -42,9 +39,8 @@ public class ChangePasswordController {
         }
 
         try {
-            SessionManager.getCurrentUser().setPasswordHash(PasswordUtil.hash(newPw));
-            SessionManager.getCurrentUser().setMustChangePassword(false);
-            DatabaseService.getInstance().saveUser(SessionManager.getCurrentUser());
+            SessionManager.login(DatabaseService.getInstance().changePassword(
+                SessionManager.getCurrentUser().getId(), current, newPw));
             txtCurrent.clear(); txtNew.clear(); txtConfirm.clear();
             lblSuccess.setText("Password changed successfully.");
             lblSuccess.setVisible(true);

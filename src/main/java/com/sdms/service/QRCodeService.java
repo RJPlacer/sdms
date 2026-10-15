@@ -32,7 +32,7 @@ public class QRCodeService {
 
         Map<EncodeHintType, Object> hints = new HashMap<>();
         hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
-        hints.put(EncodeHintType.MARGIN, 1);
+        hints.put(EncodeHintType.MARGIN, 4);
 
         QRCodeWriter writer = new QRCodeWriter();
         BitMatrix matrix = writer.encode(content, BarcodeFormat.QR_CODE, QR_SIZE, QR_SIZE, hints);
@@ -67,8 +67,8 @@ public class QRCodeService {
 
     public static String refreshAthleteQRCode(Athlete athlete)
             throws WriterException, IOException, SQLException, InterruptedException {
-        String payload = buildAthletePayload(
-            athlete.getAthleteId(), athlete.getFullName(), athlete.getSchool());
+        String payload = java.util.Optional.ofNullable(DatabaseService.getInstance().publishVerificationProfile("ATHLETE", athlete.getId())).orElseGet(() -> buildAthletePayload(
+            athlete.getAthleteId(), athlete.getFullName(), athlete.getSchool()));
         String qrPath = generateQRCode(payload, athlete.getAthleteId());
         athlete.setQrCodePath(qrPath);
         DatabaseService.getInstance().updateAthleteQrCode(athlete.getId(), qrPath);
@@ -77,8 +77,8 @@ public class QRCodeService {
 
     public static String refreshOfficialQRCode(Official official)
             throws WriterException, IOException, SQLException, InterruptedException {
-        String payload = buildOfficialPayload(
-            official.getOfficialId(), official.getFullName(), official.getSchool());
+        String payload = java.util.Optional.ofNullable(DatabaseService.getInstance().publishVerificationProfile("OFFICIAL", official.getId())).orElseGet(() -> buildOfficialPayload(
+            official.getOfficialId(), official.getFullName(), official.getSchool()));
         String qrPath = generateQRCode(payload, official.getOfficialId());
         official.setQrCodePath(qrPath);
         DatabaseService.getInstance().updateOfficialQrCode(official.getId(), qrPath);
@@ -87,8 +87,8 @@ public class QRCodeService {
 
     public static String refreshCoachQRCode(Coach coach)
             throws WriterException, IOException, SQLException, InterruptedException {
-        String payload = buildCoachPayload(
-            coach.getCoachId(), coach.getFullName(), coach.getSchool());
+        String payload = java.util.Optional.ofNullable(DatabaseService.getInstance().publishVerificationProfile("COACH", coach.getId())).orElseGet(() -> buildCoachPayload(
+            coach.getCoachId(), coach.getFullName(), coach.getSchool()));
         String qrPath = generateQRCode(payload, coach.getCoachId());
         coach.setQrCodePath(qrPath);
         DatabaseService.getInstance().updateCoachQrCode(coach.getId(), qrPath);

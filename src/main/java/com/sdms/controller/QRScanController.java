@@ -140,6 +140,8 @@ public class QRScanController {
 
             ScanPayload payload = parsePayload(raw);
             if (payload.module == null || payload.id == null || payload.id.isBlank()) {
+                String[] legacy = DatabaseService.getInstance().findPersonByLegacyId(raw);
+                if (legacy != null) { showPerson(legacy[0], legacy[1]); return; }
                 lblStatus.setText("Could not parse QR payload. Expected Athlete Track format.");
                 return;
             }

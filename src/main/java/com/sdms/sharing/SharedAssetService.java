@@ -66,14 +66,15 @@ public final class SharedAssetService {
             return "shared:" + folder + "/" + fileName;
         }
         SharingConfig config = sharing.getConfig();
-        String url = "http://" + config.getHost() + ":" + config.getPairingPort()
+        String url = "https://" + config.getHost() + ":" + config.getPairingPort()
             + "/upload?folder=" + URLEncoder.encode(folder, StandardCharsets.UTF_8)
             + "&name=" + URLEncoder.encode(suggestedName, StandardCharsets.UTF_8);
         HttpRequest request = HttpRequest.newBuilder(URI.create(url))
             .timeout(Duration.ofSeconds(20))
             .header("X-Athlete-Track-Token", config.getAssetToken())
+            .header("X-Athlete-Track-Session", RemoteDatabaseClient.session())
             .POST(HttpRequest.BodyPublishers.ofFile(source)).build();
-        HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = TlsSupport.client(config.getCertificatePin()).send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200 || !response.body().startsWith("shared:")) {
             throw new IOException("The main computer could not store the image.");
         }
@@ -81,6 +82,11 @@ public final class SharedAssetService {
     }
 
     public static String imageUrl(String storedPath) {
+        try { Path local = localPath(storedPath); return local == null ? null : local.toUri().toString(); }
+        catch (Exception e) { return null; }
+    }
+
+    private static String networkImageUrl(String storedPath) {
         if (storedPath == null || storedPath.isBlank()) return null;
         if (!storedPath.startsWith("shared:")) {
             try { return Path.of(storedPath).toUri().toString(); }
@@ -90,7 +96,7 @@ public final class SharedAssetService {
         String relative = storedPath.substring("shared:".length());
         if (sharing.isHost()) return AppPaths.sharedAssetsDir().resolve(relative).toUri().toString();
         SharingConfig config = sharing.getConfig();
-        return "http://" + config.getHost() + ":" + config.getPairingPort()
+        return "https://" + config.getHost() + ":" + config.getPairingPort()
             + "/assets/" + relative + "?token="
             + URLEncoder.encode(config.getAssetToken(), StandardCharsets.UTF_8);
     }
@@ -99,18 +105,27 @@ public final class SharedAssetService {
         if (storedPath == null || storedPath.isBlank()) return null;
         if (!storedPath.startsWith("shared:")) return Path.of(storedPath);
         String relative = storedPath.substring("shared:".length());
+        if (!relative.matches("(photos|qrcodes)/[A-Za-z0-9._-]+")) throw new IOException("Invalid shared image path.");
         SharingManager sharing = SharingManager.getInstance();
         if (sharing.isHost()) return AppPaths.sharedAssetsDir().resolve(relative);
         String extension = extension(relative);
-        Path cached = AppPaths.cacheDir().resolve(Integer.toHexString(storedPath.hashCode()) + extension);
+        String cacheKey;
+        try { cacheKey = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(storedPath.getBytes(StandardCharsets.UTF_8))); }
+        catch (java.security.NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
+        Path cached = AppPaths.cacheDir().resolve(cacheKey + extension);
         if (Files.isRegularFile(cached)) return cached;
-        String url = imageUrl(storedPath);
+        if (sharing.getConfig().getCertificatePin().isBlank()) throw new IOException("Pair with the updated main computer again.");
+        String url = networkImageUrl(storedPath);
         HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-            .timeout(Duration.ofSeconds(15)).GET().build();
-        HttpResponse<Path> response = HTTP.send(request, HttpResponse.BodyHandlers.ofFile(cached));
-        if (response.statusCode() != 200) {
-            Files.deleteIfExists(cached);
-            throw new IOException("Could not retrieve an image from the main computer.");
+            .timeout(Duration.ofSeconds(15))
+            .header("X-Athlete-Track-Session", RemoteDatabaseClient.session()).GET().build();
+        Path temporary = Files.createTempFile(AppPaths.cacheDir(), "download-", ".part");
+        try {
+            HttpResponse<Path> response = TlsSupport.client(sharing.getConfig().getCertificatePin()).send(request, HttpResponse.BodyHandlers.ofFile(temporary));
+            if (response.statusCode() != 200) throw new IOException("Could not retrieve an image from the main computer.");
+            Files.move(temporary, cached, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            Files.deleteIfExists(temporary);
         }
         return cached;
     }

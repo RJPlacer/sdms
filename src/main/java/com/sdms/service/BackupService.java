@@ -70,10 +70,7 @@ public final class BackupService {
         if (absolute.getParent() != null) Files.createDirectories(absolute.getParent());
         Path working = Files.createTempDirectory(AppPaths.backupsDir(), "backup-");
         Path databaseScript = working.resolve("database.sql.zip");
-        String escaped = databaseScript.toAbsolutePath().toString().replace("'", "''");
-        try (Statement statement = DatabaseService.getInstance().maintenanceConnection().createStatement()) {
-            statement.execute("SCRIPT TO '" + escaped + "' COMPRESSION ZIP");
-        }
+        DatabaseService.getInstance().writeBackupScript(databaseScript);
 
         Path temporaryOutput = Files.createTempFile(
             absolute.getParent() == null ? AppPaths.backupsDir() : absolute.getParent(),

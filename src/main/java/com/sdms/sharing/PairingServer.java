@@ -2,7 +2,8 @@ package com.sdms.sharing;
 
 import com.sdms.util.AppPaths;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpsServer;
+import com.sun.net.httpserver.HttpsConfigurator;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -27,15 +28,25 @@ public final class PairingServer implements AutoCloseable {
 
     private final SharingConfig config;
     private final Map<String, AttemptWindow> attempts = new ConcurrentHashMap<>();
-    private HttpServer server;
+    private HttpsServer server;
+    private final DatabaseApi databaseApi = new DatabaseApi();
 
     public PairingServer(SharingConfig config) { this.config = config; }
 
     public void start() throws IOException {
         if (server != null) return;
-        server = HttpServer.create(new InetSocketAddress(config.getPairingPort()), 0);
+        try {
+            TlsSupport.Identity identity = TlsSupport.server();
+            config.setCertificatePin(identity.fingerprint());
+            server = HttpsServer.create(new InetSocketAddress(config.getPairingPort()), 0);
+            server.setHttpsConfigurator(new HttpsConfigurator(identity.context()));
+        } catch (Exception e) { throw new IOException("Cannot start encrypted sharing", e); }
         server.createContext("/pair", this::handlePair);
         server.createContext("/health", this::handleHealth);
+        server.createContext("/status", exchange -> handleApi(exchange, databaseApi::status));
+        server.createContext("/auth", exchange -> handleApi(exchange, databaseApi::login));
+        server.createContext("/rpc", exchange -> handleApi(exchange, databaseApi::invoke));
+        server.createContext("/logout", exchange -> handleApi(exchange, databaseApi::logout));
         server.createContext("/assets", this::handleAsset);
         server.createContext("/upload", this::handleUpload);
         server.setExecutor(Executors.newCachedThreadPool(r -> {
@@ -65,9 +76,7 @@ public final class PairingServer implements AutoCloseable {
         exchange.getResponseHeaders().set("Cache-Control", "no-store");
         Properties p = new Properties();
         p.setProperty("serverName", config.getServerName());
-        p.setProperty("databasePort", Integer.toString(config.getDatabasePort()));
-        p.setProperty("databaseUser", config.getDatabaseUser());
-        p.setProperty("databasePassword", config.getDatabasePassword());
+        p.setProperty("certificatePin", config.getCertificatePin());
         p.setProperty("assetToken", config.getAssetToken());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         p.store(out, "Athlete Track same-Wi-Fi connection");
@@ -86,6 +95,10 @@ public final class PairingServer implements AutoCloseable {
             send(exchange, 405, "Method not allowed", "text/plain"); return;
         }
         if (!authorized(exchange)) { send(exchange, 403, "Forbidden", "text/plain"); return; }
+        try {
+            com.sdms.model.User user = databaseApi.principal(exchange);
+            if (user == null || user.isMustChangePassword()) { send(exchange, 401, "Sign-in required", "text/plain"); return; }
+        } catch (Exception e) { send(exchange, 401, "Sign-in required", "text/plain"); return; }
         String relative = exchange.getRequestURI().getPath().substring("/assets/".length());
         Path asset = safeAssetPath(relative);
         if (asset == null || !Files.isRegularFile(asset)) {
@@ -107,6 +120,7 @@ public final class PairingServer implements AutoCloseable {
         if (!"photos".equals(folder) && !"qrcodes".equals(folder)) {
             send(exchange, 400, "Invalid asset folder", "text/plain"); return;
         }
+        if (!databaseApi.mayUpload(exchange, folder)) { send(exchange, 403, "Sign-in and permission required", "text/plain"); return; }
         long declared = parseLong(exchange.getRequestHeaders().getFirst("Content-Length"));
         if (declared > MAX_UPLOAD_BYTES) { send(exchange, 413, "File is too large", "text/plain"); return; }
         byte[] body = exchange.getRequestBody().readNBytes((int) MAX_UPLOAD_BYTES + 1);
@@ -120,6 +134,12 @@ public final class PairingServer implements AutoCloseable {
         Path destination = folderPath.resolve(fileName).normalize();
         Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
         send(exchange, 200, "shared:" + folder + "/" + fileName, "text/plain");
+    }
+
+    @FunctionalInterface private interface ApiHandler { void handle(HttpExchange exchange) throws IOException; }
+    private void handleApi(HttpExchange exchange, ApiHandler handler) throws IOException {
+        if (!isLocalNetwork(exchange) || !authorized(exchange)) { send(exchange, 403, "Forbidden", "text/plain"); return; }
+        handler.handle(exchange);
     }
 
     private boolean authorized(HttpExchange exchange) {

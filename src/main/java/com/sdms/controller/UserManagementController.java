@@ -124,7 +124,7 @@ public class UserManagementController {
         if (!SessionManager.isAdmin()) { showError("Administrator permission is required."); return; }
         User sel = userTable.getSelectionModel().getSelectedItem();
         if (sel == null) { showError("Select a user to delete."); return; }
-        if (sel.getUsername().equals(SessionManager.getCurrentUser().getUsername())) {
+        if (sel.getId() == SessionManager.getCurrentUser().getId()) {
             showError("You cannot delete your own account."); return;
         }
         try {
