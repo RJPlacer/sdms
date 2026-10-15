@@ -3,7 +3,7 @@ package com.sdms.util;
 public final class AppInfo {
 
     private static final String APP_NAME = "Athlete Track";
-    private static final String FALLBACK_VERSION = "1.0-SNAPSHOT";
+    private static final String FALLBACK_VERSION = "1.7.0";
 
     private AppInfo() {}
 

@@ -16,7 +16,7 @@ public final class DatabaseMigrationService {
         "athletes", "athlete_palaro_previous", "athlete_lower_meets",
         "officials", "official_education", "official_sports_training", "official_track_record",
         "coaches", "coach_education", "coach_sports_training", "coach_track_record",
-        "equipment", "equipment_items", "users"
+        "equipment", "equipment_items", "users", "id_sequences", "legacy_import_rows", "legacy_import_map"
     );
 
     private DatabaseMigrationService() {}
@@ -45,6 +45,12 @@ public final class DatabaseMigrationService {
     }
 
     private static void copyTable(Connection source, Connection target, String table) throws Exception {
+        try (ResultSet available = source.getMetaData().getTables(null, null, table, new String[]{"TABLE"})) {
+            if (!available.next()) {
+                if (List.of("id_sequences", "legacy_import_rows", "legacy_import_map").contains(table)) return;
+                throw new java.sql.SQLException("Missing source table: " + table);
+            }
+        }
         try (Statement sourceStatement = source.createStatement();
              ResultSet rows = sourceStatement.executeQuery("SELECT * FROM " + table)) {
             ResultSetMetaData meta = rows.getMetaData();

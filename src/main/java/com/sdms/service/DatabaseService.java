@@ -2,6 +2,8 @@ package com.sdms.service;
 
 import com.sdms.model.*;
 import com.sdms.sharing.SharingManager;
+import com.sdms.sharing.RemoteDatabaseClient;
+import com.sdms.util.PasswordUtil;
 import com.sdms.util.AppPaths;
 
 import java.sql.*;
@@ -18,6 +20,79 @@ public class DatabaseService {
     private boolean sharedDatabase;
 
     private DatabaseService() {}
+
+    private boolean isRemote() { return SharingManager.getInstance().isClient(); }
+
+    public synchronized User authenticate(String username, String password) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.authenticate(username, password);
+        User user = findUserByUsername(username);
+        if (user == null || !user.isActive() || !PasswordUtil.verify(password, user.getPasswordHash())) return null;
+        if ("admin".equalsIgnoreCase(user.getUsername()) && "admin123".equals(password)) user.setMustChangePassword(true);
+        if (PasswordUtil.needsRehash(user.getPasswordHash())) { user.setPasswordHash(PasswordUtil.hash(password)); saveUser(user); }
+        else if (user.isMustChangePassword()) saveUser(user);
+        return user;
+    }
+
+    public synchronized User changePassword(int userId, String currentPassword, String newPassword) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("changePassword", userId, currentPassword, newPassword);
+        User user = getAllUsers().stream().filter(u -> u.getId() == userId).findFirst().orElse(null);
+        if (user == null || !user.isActive() || !PasswordUtil.verify(currentPassword, user.getPasswordHash())) throw new SQLException("Current password is incorrect.");
+        if (newPassword == null || newPassword.length() < 8 || newPassword.equals(currentPassword)) throw new SQLException("Choose a different password of at least eight characters.");
+        user.setPasswordHash(PasswordUtil.hash(newPassword)); user.setMustChangePassword(false); saveUser(user); return user;
+    }
+
+    public synchronized String publishVerificationProfile(String type, int id) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("publishVerificationProfile", type, id);
+        try {
+            if (!OnlineVerificationService.isConfigured()) return null;
+            String table = switch (type) { case "ATHLETE" -> "athletes"; case "OFFICIAL" -> "officials"; case "COACH" -> "coaches"; default -> throw new SQLException("Unsupported profile"); };
+            try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + table + " WHERE id=?")) {
+                statement.setInt(1, id);
+                try (ResultSet result = statement.executeQuery()) {
+                    if (!result.next()) throw new SQLException("Record not found");
+                    return switch (type) {
+                        case "ATHLETE" -> OnlineVerificationService.publishAthlete(mapAthlete(result)).orElse(null);
+                        case "OFFICIAL" -> OnlineVerificationService.publishOfficial(mapOfficial(result)).orElse(null);
+                        default -> OnlineVerificationService.publishCoach(mapCoach(result)).orElse(null);
+                    };
+                }
+            }
+        } catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new SQLException("Online verification interrupted", e); }
+        catch (java.io.IOException e) { throw new SQLException("Record saved, but online verification could not synchronize. Check the connection and retry.", e); }
+    }
+
+    public synchronized String[] findPersonByLegacyId(String value) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("findPersonByLegacyId", value);
+        if (value == null || value.isBlank() || value.length() > 128) return null;
+        String[] found = null;
+        for (String[] type : List.of(new String[]{"ATHLETE", "athletes", "athlete_id", "learner_ref"},
+                new String[]{"OFFICIAL", "officials", "official_id", "employee_number"},
+                new String[]{"COACH", "coaches", "coach_id", "employee_number"})) {
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "SELECT " + type[2] + " FROM " + type[1] + " WHERE " + type[2] + "=? OR " + type[3] + "=?")) {
+                statement.setString(1, value.trim()); statement.setString(2, value.trim());
+                try (ResultSet result = statement.executeQuery()) {
+                    while (result.next()) {
+                        if (found != null) throw new SQLException("This older QR code matches multiple records. Use the current Athlete Track ID to select the correct record.");
+                        found = new String[]{type[0], result.getString(1)};
+                    }
+                }
+            }
+        }
+        return found;
+    }
+
+    private void revokeVerification(String table, String businessIdColumn, String type, int id) throws SQLException {
+        if (!OnlineVerificationService.isConfigured()) return;
+        try (PreparedStatement statement = connection.prepareStatement("SELECT verification_token," + businessIdColumn + ", first_name, last_name, school FROM " + table + " WHERE id=?")) {
+            statement.setInt(1, id);
+            try (ResultSet result = statement.executeQuery()) {
+                if (result.next()) OnlineVerificationService.revoke(result.getString(1), result.getString(2), type,
+                    result.getString("last_name") + ", " + result.getString("first_name"), result.getString("school"));
+            }
+        } catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new SQLException("Online revocation interrupted", e); }
+        catch (java.io.IOException e) { throw new SQLException("Cannot delete until online ID revocation succeeds. Check the connection and retry.", e); }
+    }
 
     @FunctionalInterface
     private interface SqlWork<T> { T run() throws SQLException; }
@@ -47,6 +122,7 @@ public class DatabaseService {
             closeConnection();
             SharingManager sharing = SharingManager.getInstance();
             sharedDatabase = sharing.isShared();
+            if (sharing.isClient()) { RemoteDatabaseClient.available(sharing.getConfig()); return; }
             Class.forName(sharedDatabase ? "org.h2.Driver" : "org.sqlite.JDBC");
             connection = sharedDatabase
                 ? DriverManager.getConnection(sharing.jdbcUrl(), sharing.databaseUser(), sharing.databasePassword())
@@ -67,6 +143,7 @@ public class DatabaseService {
     public synchronized void closeConnection() {
         try { if (connection != null) connection.close(); } catch (SQLException ignored) {}
         connection = null;
+        RemoteDatabaseClient.logout();
     }
 
     public synchronized void reinitialize() {
@@ -78,7 +155,17 @@ public class DatabaseService {
         return connection;
     }
 
-    public int countTable(String table) throws SQLException {
+    public synchronized void writeBackupScript(java.nio.file.Path destination) throws SQLException {
+        if (isRemote()) throw new SQLException("Back up from the main computer.");
+        String escaped = destination.toAbsolutePath().toString().replace("'", "''");
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("SCRIPT TO '" + escaped + "' COMPRESSION ZIP");
+        }
+    }
+
+    public synchronized int countTable(String table) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("countTable" , table);
+        if (!List.of("athletes", "officials", "coaches", "equipment", "users").contains(table)) throw new SQLException("Unsupported table");
         ResultSet rs = connection.createStatement().executeQuery("SELECT COUNT(*) FROM " + table);
         return rs.next() ? rs.getInt(1) : 0;
     }
@@ -101,6 +188,8 @@ public class DatabaseService {
         st.execute("CREATE TABLE IF NOT EXISTS equipment (id " + id + ", equipment_id TEXT UNIQUE, borrower_name TEXT, designation TEXT, school TEXT, event TEXT, mobile_no TEXT, date TEXT, issued_by TEXT, issued_to TEXT)");
         st.execute("CREATE TABLE IF NOT EXISTS equipment_items (id " + id + ", equipment_id INTEGER REFERENCES equipment(id) ON DELETE CASCADE, qty INTEGER, unit TEXT, make_and_description TEXT, date_borrowed TEXT, date_returned TEXT, remarks TEXT)");
         st.execute("CREATE TABLE IF NOT EXISTS id_sequences (sequence_key TEXT PRIMARY KEY, next_value INTEGER NOT NULL)");
+        st.execute("CREATE TABLE IF NOT EXISTS legacy_import_rows (source TEXT, source_table TEXT, source_key TEXT, record_json TEXT, PRIMARY KEY(source, source_table, source_key))");
+        st.execute("CREATE TABLE IF NOT EXISTS legacy_import_map (source TEXT, source_table TEXT, source_key TEXT, target_table TEXT, target_id INTEGER, PRIMARY KEY(source, source_table, source_key))");
         st.close();
 
         if (!hasColumn("athletes", "grade_level")) {
@@ -125,7 +214,8 @@ public class DatabaseService {
             : "INTEGER PRIMARY KEY AUTOINCREMENT";
     }
 
-    public String getOrCreateVerificationToken(String personType, int databaseId) throws SQLException {
+    public synchronized String getOrCreateVerificationToken(String personType, int databaseId) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getOrCreateVerificationToken" , personType, databaseId);
         String table = switch (personType.toUpperCase()) {
             case "ATHLETE" -> "athletes";
             case "OFFICIAL" -> "officials";
@@ -153,7 +243,8 @@ public class DatabaseService {
         return token;
     }
 
-    public String[] findPersonByVerificationToken(String token) throws SQLException {
+    public synchronized String[] findPersonByVerificationToken(String token) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("findPersonByVerificationToken" , token);
         if (token == null || token.isBlank()) return null;
         for (String[] type : List.of(
                 new String[]{"ATHLETE", "athletes", "athlete_id"},
@@ -185,23 +276,24 @@ public class DatabaseService {
     private String generateId(String prefix, String table, String col) throws SQLException {
         int year = Year.now().getValue();
         if (sharedDatabase) return generateSharedId(prefix, table, col, year);
-        int maxSequence = 0;
-        String marker = prefix + "-" + year + "-";
-        try (PreparedStatement ps = connection.prepareStatement(
-                "SELECT " + col + " FROM " + table + " WHERE " + col + " LIKE ?")) {
-            ps.setString(1, marker + "%");
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String value = rs.getString(1);
-                    if (value == null || !value.startsWith(marker)) continue;
-                    try {
-                        maxSequence = Math.max(maxSequence,
-                            Integer.parseInt(value.substring(marker.length())));
-                    } catch (NumberFormatException ignored) {}
+        String key = prefix + "-" + year;
+        try (PreparedStatement select = connection.prepareStatement("SELECT next_value FROM id_sequences WHERE sequence_key=?")) {
+            select.setString(1, key);
+            try (ResultSet result = select.executeQuery()) {
+                if (result.next()) {
+                    int value = result.getInt(1);
+                    try (PreparedStatement update = connection.prepareStatement("UPDATE id_sequences SET next_value=? WHERE sequence_key=?")) {
+                        update.setInt(1, value + 1); update.setString(2, key); update.executeUpdate();
+                    }
+                    return "%s-%d-%04d".formatted(prefix, year, value);
                 }
             }
         }
-        return "%s-%d-%04d".formatted(prefix, year, maxSequence + 1);
+        int first = nextExistingSequence(prefix, table, col, year);
+        try (PreparedStatement insert = connection.prepareStatement("INSERT INTO id_sequences (sequence_key,next_value) VALUES (?,?)")) {
+            insert.setString(1, key); insert.setInt(2, first + 1); insert.executeUpdate();
+        }
+        return "%s-%d-%04d".formatted(prefix, year, first);
     }
 
     private String generateSharedId(String prefix, String table, String col, int year) throws SQLException {
@@ -258,14 +350,16 @@ public class DatabaseService {
 
     // ── Athlete ───────────────────────────────────────────────────────────────
 
-    public List<Athlete> getAllAthletes() throws SQLException {
+    public synchronized List<Athlete> getAllAthletes() throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getAllAthletes");
         List<Athlete> list = new ArrayList<>();
         ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM athletes ORDER BY last_name, first_name");
         while (rs.next()) list.add(mapAthlete(rs));
         return list;
     }
 
-    public List<Athlete> searchAthletes(String q) throws SQLException {
+    public synchronized List<Athlete> searchAthletes(String q) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("searchAthletes" , q);
         List<Athlete> list = new ArrayList<>();
         String like = "%" + q.toLowerCase() + "%";
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM athletes WHERE lower(last_name) LIKE ? OR lower(first_name) LIKE ? OR lower(school) LIKE ? OR athlete_id LIKE ? ORDER BY last_name, first_name");
@@ -275,7 +369,8 @@ public class DatabaseService {
         return list;
     }
 
-    public Athlete findAthleteByAthleteId(String athleteId) throws SQLException {
+    public synchronized Athlete findAthleteByAthleteId(String athleteId) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("findAthleteByAthleteId" , athleteId);
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM athletes WHERE athlete_id=?");
         ps.setString(1, athleteId);
         ResultSet rs = ps.executeQuery();
@@ -288,7 +383,8 @@ public class DatabaseService {
         return null;
     }
 
-    public int saveAthlete(Athlete a) throws SQLException {
+    public synchronized int saveAthlete(Athlete a) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("saveAthlete" , a);
         return inTransaction(() -> saveAthleteInternal(a));
     }
 
@@ -306,14 +402,17 @@ public class DatabaseService {
         return a.getId();
     }
 
-    public void deleteAthlete(int id) throws SQLException {
+    public synchronized void deleteAthlete(int id) throws SQLException {
+        if (isRemote()) { RemoteDatabaseClient.call("deleteAthlete" , id); return; }
+        revokeVerification("athletes", "athlete_id", "ATHLETE", id);
         try (PreparedStatement ps = connection.prepareStatement("DELETE FROM athletes WHERE id=?")) {
             ps.setInt(1,id);
             ps.executeUpdate();
         }
     }
 
-    public void saveAthletePalaroRecords(int athleteId, java.util.List<Athlete.PalaroPrevious> records) throws SQLException {
+    public synchronized void saveAthletePalaroRecords(int athleteId, java.util.List<Athlete.PalaroPrevious> records) throws SQLException {
+        if (isRemote()) { RemoteDatabaseClient.call("saveAthletePalaroRecords" , athleteId, records); return; }
         try (PreparedStatement del = connection.prepareStatement("DELETE FROM athlete_palaro_previous WHERE athlete_id=?")) {
             del.setInt(1, athleteId);
             del.executeUpdate();
@@ -327,7 +426,8 @@ public class DatabaseService {
         }
     }
 
-    public void saveAthleteLowerMeets(int athleteId, java.util.List<Athlete.LowerMeet> meets) throws SQLException {
+    public synchronized void saveAthleteLowerMeets(int athleteId, java.util.List<Athlete.LowerMeet> meets) throws SQLException {
+        if (isRemote()) { RemoteDatabaseClient.call("saveAthleteLowerMeets" , athleteId, meets); return; }
         try (PreparedStatement del = connection.prepareStatement("DELETE FROM athlete_lower_meets WHERE athlete_id=?")) {
             del.setInt(1, athleteId);
             del.executeUpdate();
@@ -341,8 +441,9 @@ public class DatabaseService {
         }
     }
 
-    public int saveAthleteWithRecords(Athlete athlete,
+    public synchronized int saveAthleteWithRecords(Athlete athlete,
             List<Athlete.PalaroPrevious> records, List<Athlete.LowerMeet> meets) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("saveAthleteWithRecords" , athlete, records, meets);
         return inTransaction(() -> {
             int id = saveAthleteInternal(athlete);
             saveAthletePalaroRecords(id, records);
@@ -351,7 +452,8 @@ public class DatabaseService {
         });
     }
 
-    public java.util.List<Athlete.PalaroPrevious> getAthletePalaroRecords(int athleteId) throws SQLException {
+    public synchronized java.util.List<Athlete.PalaroPrevious> getAthletePalaroRecords(int athleteId) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getAthletePalaroRecords" , athleteId);
         java.util.List<Athlete.PalaroPrevious> list = new ArrayList<>();
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM athlete_palaro_previous WHERE athlete_id=?");
         ps.setInt(1, athleteId); ResultSet rs = ps.executeQuery();
@@ -365,7 +467,8 @@ public class DatabaseService {
         return list;
     }
 
-    public java.util.List<Athlete.LowerMeet> getAthleteLowerMeets(int athleteId) throws SQLException {
+    public synchronized java.util.List<Athlete.LowerMeet> getAthleteLowerMeets(int athleteId) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getAthleteLowerMeets" , athleteId);
         java.util.List<Athlete.LowerMeet> list = new ArrayList<>();
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM athlete_lower_meets WHERE athlete_id=?");
         ps.setInt(1, athleteId); ResultSet rs = ps.executeQuery();
@@ -422,14 +525,16 @@ public class DatabaseService {
 
     // ── Official ──────────────────────────────────────────────────────────────
 
-    public List<Official> getAllOfficials() throws SQLException {
+    public synchronized List<Official> getAllOfficials() throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getAllOfficials");
         List<Official> list = new ArrayList<>();
         ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM officials ORDER BY last_name, first_name");
         while (rs.next()) { Official o = mapOfficial(rs); loadOfficialChildren(o); list.add(o); }
         return list;
     }
 
-    public List<Official> searchOfficials(String q) throws SQLException {
+    public synchronized List<Official> searchOfficials(String q) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("searchOfficials" , q);
         List<Official> list = new ArrayList<>();
         String like = "%" + q.toLowerCase() + "%";
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM officials WHERE lower(last_name) LIKE ? OR lower(first_name) LIKE ? OR lower(school) LIKE ? OR official_id LIKE ? ORDER BY last_name");
@@ -439,7 +544,8 @@ public class DatabaseService {
         return list;
     }
 
-    public Official findOfficialByOfficialId(String officialId) throws SQLException {
+    public synchronized Official findOfficialByOfficialId(String officialId) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("findOfficialByOfficialId" , officialId);
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM officials WHERE official_id=?");
         ps.setString(1, officialId);
         ResultSet rs = ps.executeQuery();
@@ -451,7 +557,8 @@ public class DatabaseService {
         return null;
     }
 
-    public int saveOfficial(Official o) throws SQLException {
+    public synchronized int saveOfficial(Official o) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("saveOfficial" , o);
         return inTransaction(() -> saveOfficialInternal(o));
     }
 
@@ -470,7 +577,9 @@ public class DatabaseService {
         return o.getId();
     }
 
-    public void deleteOfficial(int id) throws SQLException {
+    public synchronized void deleteOfficial(int id) throws SQLException {
+        if (isRemote()) { RemoteDatabaseClient.call("deleteOfficial" , id); return; }
+        revokeVerification("officials", "official_id", "OFFICIAL", id);
         inTransaction(() -> {
             deleteChildren("official", id);
             try (PreparedStatement ps = connection.prepareStatement("DELETE FROM officials WHERE id=?")) {
@@ -481,7 +590,8 @@ public class DatabaseService {
         });
     }
 
-    public void updateOfficialQrCode(int id, String qrCodePath) throws SQLException {
+    public synchronized void updateOfficialQrCode(int id, String qrCodePath) throws SQLException {
+        if (isRemote()) { RemoteDatabaseClient.call("updateOfficialQrCode" , id, qrCodePath); return; }
         try (PreparedStatement ps = connection.prepareStatement("UPDATE officials SET qr_code_path=? WHERE id=?")) {
             ps.setString(1, qrCodePath);
             ps.setInt(2, id);
@@ -575,14 +685,16 @@ public class DatabaseService {
 
     // ── Coach (mirrors Official) ───────────────────────────────────────────────
 
-    public List<Coach> getAllCoaches() throws SQLException {
+    public synchronized List<Coach> getAllCoaches() throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getAllCoaches");
         List<Coach> list = new ArrayList<>();
         ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM coaches ORDER BY last_name, first_name");
         while (rs.next()) { Coach c = mapCoach(rs); loadCoachChildren(c); list.add(c); }
         return list;
     }
 
-    public List<Coach> searchCoaches(String q) throws SQLException {
+    public synchronized List<Coach> searchCoaches(String q) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("searchCoaches" , q);
         List<Coach> list = new ArrayList<>();
         String like = "%" + q.toLowerCase() + "%";
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM coaches WHERE lower(last_name) LIKE ? OR lower(first_name) LIKE ? OR lower(school) LIKE ? OR coach_id LIKE ? ORDER BY last_name");
@@ -592,7 +704,8 @@ public class DatabaseService {
         return list;
     }
 
-    public Coach findCoachByCoachId(String coachId) throws SQLException {
+    public synchronized Coach findCoachByCoachId(String coachId) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("findCoachByCoachId" , coachId);
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM coaches WHERE coach_id=?");
         ps.setString(1, coachId);
         ResultSet rs = ps.executeQuery();
@@ -604,7 +717,8 @@ public class DatabaseService {
         return null;
     }
 
-    public int saveCoach(Coach c) throws SQLException {
+    public synchronized int saveCoach(Coach c) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("saveCoach" , c);
         return inTransaction(() -> saveCoachInternal(c));
     }
 
@@ -623,7 +737,9 @@ public class DatabaseService {
         return c.getId();
     }
 
-    public void deleteCoach(int id) throws SQLException {
+    public synchronized void deleteCoach(int id) throws SQLException {
+        if (isRemote()) { RemoteDatabaseClient.call("deleteCoach" , id); return; }
+        revokeVerification("coaches", "coach_id", "COACH", id);
         inTransaction(() -> {
             deleteChildren("coach", id);
             try (PreparedStatement ps = connection.prepareStatement("DELETE FROM coaches WHERE id=?")) {
@@ -634,7 +750,8 @@ public class DatabaseService {
         });
     }
 
-    public void updateCoachQrCode(int id, String qrCodePath) throws SQLException {
+    public synchronized void updateCoachQrCode(int id, String qrCodePath) throws SQLException {
+        if (isRemote()) { RemoteDatabaseClient.call("updateCoachQrCode" , id, qrCodePath); return; }
         try (PreparedStatement ps = connection.prepareStatement("UPDATE coaches SET qr_code_path=? WHERE id=?")) {
             ps.setString(1, qrCodePath);
             ps.setInt(2, id);
@@ -737,7 +854,8 @@ public class DatabaseService {
 
     // ── Equipment ─────────────────────────────────────────────────────────────
 
-    public List<Equipment> getAllEquipment() throws SQLException {
+    public synchronized List<Equipment> getAllEquipment() throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getAllEquipment");
         List<Equipment> list = new ArrayList<>();
         ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM equipment ORDER BY id DESC");
         while (rs.next()) {
@@ -748,7 +866,8 @@ public class DatabaseService {
         return list;
     }
 
-    public List<Equipment> searchEquipment(String q) throws SQLException {
+    public synchronized List<Equipment> searchEquipment(String q) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("searchEquipment" , q);
         List<Equipment> list = new ArrayList<>();
         String like = "%" + q.toLowerCase() + "%";
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM equipment WHERE lower(borrower_name) LIKE ? OR lower(school) LIKE ? OR lower(event) LIKE ? OR equipment_id LIKE ? ORDER BY id DESC");
@@ -762,7 +881,8 @@ public class DatabaseService {
         return list;
     }
 
-    public int saveEquipment(Equipment e) throws SQLException {
+    public synchronized int saveEquipment(Equipment e) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("saveEquipment" , e);
         return inTransaction(() -> saveEquipmentInternal(e));
     }
 
@@ -781,14 +901,16 @@ public class DatabaseService {
         return e.getId();
     }
 
-    public void deleteEquipment(int id) throws SQLException {
+    public synchronized void deleteEquipment(int id) throws SQLException {
+        if (isRemote()) { RemoteDatabaseClient.call("deleteEquipment" , id); return; }
         try (PreparedStatement ps = connection.prepareStatement("DELETE FROM equipment WHERE id=?")) {
             ps.setInt(1,id);
             ps.executeUpdate();
         }
     }
 
-    public void updateAthleteQrCode(int id, String qrCodePath) throws SQLException {
+    public synchronized void updateAthleteQrCode(int id, String qrCodePath) throws SQLException {
+        if (isRemote()) { RemoteDatabaseClient.call("updateAthleteQrCode" , id, qrCodePath); return; }
         try (PreparedStatement ps = connection.prepareStatement("UPDATE athletes SET qr_code_path=? WHERE id=?")) {
             ps.setString(1, qrCodePath);
             ps.setInt(2, id);
@@ -796,7 +918,8 @@ public class DatabaseService {
         }
     }
 
-    public List<Equipment.EquipmentItem> getEquipmentItems(int equipmentId) throws SQLException {
+    public synchronized List<Equipment.EquipmentItem> getEquipmentItems(int equipmentId) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getEquipmentItems" , equipmentId);
         List<Equipment.EquipmentItem> items = new ArrayList<>();
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM equipment_items WHERE equipment_id=?");
         ps.setInt(1, equipmentId);
@@ -882,28 +1005,32 @@ public class DatabaseService {
         }
     }
 
-    public boolean hasUsers() throws SQLException {
+    public synchronized boolean hasUsers() throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.available(SharingManager.getInstance().getConfig());
         try (Statement st = connection.createStatement();
              ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM users")) {
             return rs.next() && rs.getInt(1) > 0;
         }
     }
 
-    public java.util.List<com.sdms.model.User> getAllUsers() throws SQLException {
+    public synchronized java.util.List<com.sdms.model.User> getAllUsers() throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getAllUsers");
         java.util.List<com.sdms.model.User> list = new ArrayList<>();
         ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM users ORDER BY username");
         while (rs.next()) list.add(mapUser(rs));
         return list;
     }
 
-    public com.sdms.model.User findUserByUsername(String username) throws SQLException {
+    public synchronized com.sdms.model.User findUserByUsername(String username) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("findUserByUsername" , username);
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM users WHERE username=?");
         ps.setString(1, username);
         ResultSet rs = ps.executeQuery();
         return rs.next() ? mapUser(rs) : null;
     }
 
-    public void saveUser(com.sdms.model.User u) throws SQLException {
+    public synchronized void saveUser(com.sdms.model.User u) throws SQLException {
+        if (isRemote()) { RemoteDatabaseClient.call("saveUser" , u); return; }
         if (u.getId() == 0) {
             PreparedStatement ps = connection.prepareStatement(
                 "INSERT INTO users (username, password_hash, role, full_name, active, must_change_password) VALUES (?,?,?,?,?,?)",
@@ -926,7 +1053,8 @@ public class DatabaseService {
         }
     }
 
-    public void deleteUser(int id) throws SQLException {
+    public synchronized void deleteUser(int id) throws SQLException {
+        if (isRemote()) { RemoteDatabaseClient.call("deleteUser" , id); return; }
         try (PreparedStatement ps = connection.prepareStatement("DELETE FROM users WHERE id=?")) {
             ps.setInt(1,id);
             ps.executeUpdate();
@@ -941,7 +1069,8 @@ public class DatabaseService {
         return user;
     }
 
-    public int countActiveAdmins() throws SQLException {
+    public synchronized int countActiveAdmins() throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("countActiveAdmins");
         try (PreparedStatement ps = connection.prepareStatement(
                 "SELECT COUNT(*) FROM users WHERE role='ADMIN' AND active=1");
              ResultSet rs = ps.executeQuery()) {
@@ -951,7 +1080,8 @@ public class DatabaseService {
 
     // ── Global Search ─────────────────────────────────────────────────────────
 
-    public java.util.List<com.sdms.model.SearchResult> globalSearch(String query) throws SQLException {
+    public synchronized java.util.List<com.sdms.model.SearchResult> globalSearch(String query) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("globalSearch" , query);
         java.util.List<com.sdms.model.SearchResult> results = new ArrayList<>();
         String like = "%" + query.toLowerCase() + "%";
 
@@ -1003,7 +1133,8 @@ public class DatabaseService {
 
     // ── School filter helpers ─────────────────────────────────────────────────
 
-    public java.util.List<String> getAllSchools() throws SQLException {
+    public synchronized java.util.List<String> getAllSchools() throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getAllSchools");
         java.util.List<String> schools = new ArrayList<>();
         ResultSet rs = connection.createStatement().executeQuery(
             "SELECT DISTINCT school FROM athletes WHERE school IS NOT NULL AND school != '' " +
@@ -1014,7 +1145,8 @@ public class DatabaseService {
         return schools;
     }
 
-    public java.util.List<Athlete> getAthletesBySchool(String school) throws SQLException {
+    public synchronized java.util.List<Athlete> getAthletesBySchool(String school) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getAthletesBySchool" , school);
         java.util.List<Athlete> list = new ArrayList<>();
         PreparedStatement ps = connection.prepareStatement(
             "SELECT * FROM athletes WHERE school=? ORDER BY last_name, first_name");
@@ -1024,7 +1156,8 @@ public class DatabaseService {
         return list;
     }
 
-    public java.util.List<Official> getOfficialsBySchool(String school) throws SQLException {
+    public synchronized java.util.List<Official> getOfficialsBySchool(String school) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getOfficialsBySchool" , school);
         java.util.List<Official> list = new ArrayList<>();
         PreparedStatement ps = connection.prepareStatement(
             "SELECT * FROM officials WHERE school=? ORDER BY last_name, first_name");
@@ -1034,7 +1167,8 @@ public class DatabaseService {
         return list;
     }
 
-    public java.util.List<Coach> getCoachesBySchool(String school) throws SQLException {
+    public synchronized java.util.List<Coach> getCoachesBySchool(String school) throws SQLException {
+        if (isRemote()) return RemoteDatabaseClient.call("getCoachesBySchool" , school);
         java.util.List<Coach> list = new ArrayList<>();
         PreparedStatement ps = connection.prepareStatement(
             "SELECT * FROM coaches WHERE school=? ORDER BY last_name, first_name");

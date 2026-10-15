@@ -53,6 +53,10 @@ class DatabaseServiceIntegrationTest {
             Athlete fourth = athlete("Fourth");
             database.saveAthlete(fourth);
             assertNotEquals(third.getAthleteId(), fourth.getAthleteId());
+            database.deleteAthlete(fourth.getId());
+            Athlete fifth = athlete("Fifth");
+            database.saveAthlete(fifth);
+            assertNotEquals(fourth.getAthleteId(), fifth.getAthleteId(), "Deleted business IDs must not be reused");
 
             Official official = new Official();
             official.setLastName("Official");

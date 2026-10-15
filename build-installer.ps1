@@ -98,7 +98,7 @@ try {
 
     if (-not $SkipBuild) {
         Write-Host "[1/3] Building Athlete Track $AppVersion..." -ForegroundColor Cyan
-        & mvn "-Drevision=$AppVersion" -DskipTests package
+        & mvn "-Drevision=$AppVersion" package
         if ($LASTEXITCODE -ne 0) {
             throw "Maven build failed with exit code $LASTEXITCODE."
         }
@@ -129,9 +129,19 @@ try {
         Write-Host "[2/3] Keeping existing installer files." -ForegroundColor Yellow
     }
 
+    # Package only the runnable JAR, never test reports, databases, or other target contents.
+    $packageInputDir = Join-Path $targetDir "installer-input-$AppVersion"
+    New-Item -ItemType Directory -Path $packageInputDir -Force | Out-Null
+    Copy-Item -LiteralPath $jarPath -Destination (Join-Path $packageInputDir $MainJar) -Force
+    $unexpectedInputs = Get-ChildItem -LiteralPath $packageInputDir -Force |
+        Where-Object { $_.Name -ne $MainJar }
+    if ($unexpectedInputs) {
+        throw "Installer input directory contains unexpected files. Use a fresh build directory."
+    }
+
     $jpArgs = @(
         "--type", $PackageType,
-        "--input", "target",
+        "--input", $packageInputDir,
         "--dest", $OutputDir,
         "--name", $AppName,
         "--vendor", $Vendor,

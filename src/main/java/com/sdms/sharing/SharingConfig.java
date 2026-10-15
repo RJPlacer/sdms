@@ -27,6 +27,7 @@ public final class SharingConfig {
     private String databasePassword = "";
     private String assetToken = "";
     private String pairingCode = "";
+    private String certificatePin = "";
 
     public static SharingConfig load() {
         SharingConfig config = new SharingConfig();
@@ -43,6 +44,7 @@ public final class SharingConfig {
             config.databasePassword = p.getProperty("databasePassword", "");
             config.assetToken = p.getProperty("assetToken", "");
             config.pairingCode = p.getProperty("pairingCode", "");
+            config.certificatePin = p.getProperty("certificatePin", "");
         } catch (IOException ignored) {
             return new SharingConfig();
         }
@@ -60,6 +62,7 @@ public final class SharingConfig {
         p.setProperty("databasePassword", value(databasePassword));
         p.setProperty("assetToken", value(assetToken));
         p.setProperty("pairingCode", value(pairingCode));
+        p.setProperty("certificatePin", value(certificatePin));
         try (OutputStream out = Files.newOutputStream(AppPaths.sharingConfigPath())) {
             p.store(out, "Athlete Track multi-PC sharing settings");
         }
@@ -97,6 +100,8 @@ public final class SharingConfig {
     public void setDatabasePassword(String databasePassword) { this.databasePassword = databasePassword; }
     public String getAssetToken() { return assetToken; }
     public void setAssetToken(String assetToken) { this.assetToken = assetToken; }
+    public String getCertificatePin() { return certificatePin; }
+    public void setCertificatePin(String pin) { certificatePin = pin == null ? "" : pin; }
     public String getPairingCode() { return pairingCode; }
     public void setPairingCode(String pairingCode) { this.pairingCode = pairingCode; }
 }

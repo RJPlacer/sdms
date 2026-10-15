@@ -21,6 +21,7 @@
                 <Button text="🗑 Delete"        styleClass="btn-danger"    onAction="#onDelete"/>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Button text="📄 Export SDO PDF" styleClass="btn-secondary" onAction="#onExportReport"/>
+                <Button text="Export Word" styleClass="btn-secondary" onAction="#onExportWord"/>
             </HBox>
         </VBox>
     </top>

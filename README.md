@@ -3,6 +3,8 @@
 JavaFX desktop application for Palarong Pambansa delegation management. It supports
 both single-computer SQLite storage and optional same-Wi-Fi multi-computer sharing.
 
+Version 1.7.0 adds authenticated encrypted multi-PC sharing, restored equipment Word export, and corrected online QR publishing. See [consolidation details](docs/CONSOLIDATION.md) for upgrade and data-preservation notes.
+
 ## Documentation
 
 For full system documentation (features, architecture, setup, packaging, troubleshooting, backup/restore), see:
@@ -36,22 +38,22 @@ initial administrator account with a unique username and a password of at least
 ### Build shaded JAR
 
 ```bash
-mvn -DskipTests package
+mvn package
 ```
 
 Output:
 
-- target/sports-delegation-ms-1.6.2-shaded.jar
+- target/sports-delegation-ms-1.7.0-shaded.jar
 
 Run the packaged JAR with JDK 17+:
 
 ```bash
-java -jar target/sports-delegation-ms-1.6.2-shaded.jar
+java -jar target/sports-delegation-ms-1.7.0-shaded.jar
 ```
 
 ## Same-Wi-Fi Multi-PC Sharing
 
-Version 1.6.2 can keep administrators, encoders, and viewers on one central set
+Version 1.7.0 can keep administrators, encoders, and viewers on one central set
 of records without copying database files or using a hosted website.
 
 On the administrator's primary computer:
@@ -280,7 +282,7 @@ build-installer.cmd -SkipBuild -CleanOutput
 
 Installer output:
 
-- dist/Athlete Track-1.6.2.exe
+- dist/Athlete Track-1.7.0.exe
 
 ### Updating an installed copy
 
@@ -288,10 +290,10 @@ The Windows package now has a permanent upgrade identity. To publish a newer
 release, choose a version greater than the installed version and run:
 
 ```powershell
-build-installer.cmd -AppVersion 1.6.2
+build-installer.cmd -AppVersion 1.7.0
 ```
 
-Give users the resulting `Athlete Track-1.6.2.exe`. They should close Athlete
+Give users the resulting `Athlete Track-1.7.0.exe`. They should close Athlete
 Track and run the new installer normally. Windows replaces the installed
 program in place; users do not uninstall the old version first.
 
@@ -300,7 +302,7 @@ are stored under the user's local application-data directory, outside the
 installation directory, so an in-place upgrade preserves them.
 
 Version numbers must increase and use three numeric parts, such as `1.1.0`,
-`1.6.1`, then `1.6.2`. The script passes the same version to Maven, the app's
+`1.6.1`, then `1.7.0`. The script passes the same version to Maven, the app's
 About screen, and the Windows installer.
 
 ## Current Runtime Data Paths (Windows)

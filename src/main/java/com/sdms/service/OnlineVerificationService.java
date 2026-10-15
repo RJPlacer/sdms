@@ -85,6 +85,19 @@ public final class OnlineVerificationService {
                                 String fullName, String school, String descriptorLabel,
                                 String descriptorValue, String photoPath)
             throws IOException, InterruptedException {
+        publish(token, personId, personType, fullName, school, descriptorLabel, descriptorValue, photoPath, "ACTIVE");
+    }
+
+    public static void revoke(String token, String personId, String personType, String fullName, String school)
+            throws IOException, InterruptedException {
+        if (isConfigured() && token != null && !token.isBlank()) {
+            publish(token, personId, personType, fullName, school, "", "", null, "REVOKED");
+        }
+    }
+
+    private static void publish(String token, String personId, String personType, String fullName,
+                                String school, String descriptorLabel, String descriptorValue,
+                                String photoPath, String status) throws IOException, InterruptedException {
         PhotoData photo = readPhoto(photoPath);
         String json = "{" +
             field("token", token) + "," +
@@ -94,7 +107,7 @@ public final class OnlineVerificationService {
             field("school", school) + "," +
             field("descriptorLabel", descriptorLabel) + "," +
             field("descriptorValue", descriptorValue) + "," +
-            field("status", "ACTIVE") +
+            field("status", status) +
             (photo == null ? "" : "," + field("photoBase64", photo.base64)
                 + "," + field("photoContentType", photo.contentType)) +
             "}";

@@ -19,12 +19,11 @@ public final class PairingClient {
         if (!cleanHost.matches("[A-Za-z0-9._:-]{1,255}")) {
             throw new IllegalArgumentException("Enter a valid computer name or IP address.");
         }
-        String url = "http://" + cleanHost + ":" + pairingPort + "/pair?code="
+        String url = "https://" + cleanHost + ":" + pairingPort + "/pair?code="
             + URLEncoder.encode(code == null ? "" : code.trim(), StandardCharsets.UTF_8);
         HttpRequest request = HttpRequest.newBuilder(URI.create(url))
             .timeout(Duration.ofSeconds(6)).GET().build();
-        HttpResponse<byte[]> response = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5)).build()
+        HttpResponse<byte[]> response = TlsSupport.client("")
             .send(request, HttpResponse.BodyHandlers.ofByteArray());
         if (response.statusCode() == 403) throw new IllegalArgumentException("The connection code is incorrect.");
         if (response.statusCode() != 200) throw new IllegalStateException("The main computer did not accept the connection.");
@@ -37,8 +36,12 @@ public final class PairingClient {
         config.setHost(cleanHost);
         config.setDatabasePort(Integer.parseInt(p.getProperty("databasePort", "9123")));
         config.setPairingPort(pairingPort);
-        config.setDatabaseUser(p.getProperty("databaseUser"));
-        config.setDatabasePassword(p.getProperty("databasePassword"));
+        String pin = TlsSupport.fingerprint((java.security.cert.X509Certificate)
+            response.sslSession().orElseThrow().getPeerCertificates()[0]);
+        if (!pin.equals(p.getProperty("certificatePin"))) throw new IllegalStateException("Main computer identity mismatch.");
+        config.setCertificatePin(pin);
+        config.setDatabaseUser("");
+        config.setDatabasePassword("");
         config.setAssetToken(p.getProperty("assetToken"));
         return config;
     }
